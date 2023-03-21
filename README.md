@@ -8,6 +8,15 @@ EduRob is a handy mobile robot specially designed for education. Through clever 
 ![](https://www.imsl.fh-dortmund.de/wp-content/uploads/2023/01/EduRob-Gruppenfoto-1920-768x511.jpg "")
 
 ---
+Detailed information:
+
+[Partslist](Doc/Partslist/README.md)
+
+[PCB](PCB/README.md) 
+
+[CAD](PCB/README.md) 
+
+---
 
 ## Background
 
