@@ -1,4 +1,4 @@
-# Edurob Partslist
+# EduRob Partslist
 [Homepage](https://www.imsl.fh-dortmund.de/mobile-roboter/edurob/)
 ## List of necessary items to build your own EduRob
 
@@ -13,3 +13,4 @@
 | 6 | Plug, right angle Plug, right angle Typ A 90° USB type A plug, 90° 774866 TRU COMPONENTS  |2| [Link](https://www.conrad.com/p/plug-right-angle-plug-right-angle-typ-a-90-usb-type-a-plug-90-774866-tru-components-content-1-pcs-1567163)|
 | 7 | Plug, right angle Plug, right angle Typ A 90° USB type A plug, 90° 774866 TRU COMPONENTS  |2| [Link](https://www.conrad.com/p/plug-right-angle-plug-right-angle-typ-a-90-usb-type-a-plug-90-774866-tru-components-content-1-pcs-1567163)|
 | 8 | EduRob_Baseplate  |1 or more| [Link](/CAD/EduRob_Baseplate.STEP)|
+| 9 | EduRobController  |1| [Link](/Doc/Partslist/README.md)|
