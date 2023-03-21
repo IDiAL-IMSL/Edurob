@@ -14,7 +14,7 @@ Detailed information:
 
 [PCB](PCB/README.md) 
 
-[CAD](PCB/README.md) 
+[CAD](CAD/README.md) 
 
 ---
 
