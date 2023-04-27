@@ -25,6 +25,7 @@
 - Select the corresponding upload port under "Tools/Port/COMx"
 - Set the upload speed to 921600 under "Tools/Upload Speed/921600"
 - Your configuration should look like this:
+
     ![](/Doc/Pictures/ArduinoConfig.png "")
 - Select "Upload"
 - (Optional for ROS) Start your micro-Ros agent: `ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888`
