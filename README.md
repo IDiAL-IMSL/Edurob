@@ -2,13 +2,11 @@
 [Homepage](https://www.imsl.fh-dortmund.de/mobile-roboter/edurob/)
 ## Educational robot with support for various drive kinematics
 
----
 EduRob is a handy mobile robot specially designed for education. Through clever design, it is possible to cover different types of drives such as Mecanum, Omniwheel, and differential drive.
 
 ![](https://www.imsl.fh-dortmund.de/wp-content/uploads/2023/01/EduRob-Gruppenfoto-1920-768x511.jpg "")
 
----
-Detailed information:
+## Detailed information:
 
 [Getting Started](Doc/README.md)
 
@@ -17,6 +15,14 @@ Detailed information:
 [PCB](PCB/README.md) 
 
 [CAD](CAD/README.md) 
+
+## Example projects:
+
+[SLAM](Projects/SLAM/README.md)
+
+[Line Follower](https://github.com/blssed/EduRob-LineFollower)
+
+
 
 ---
 
