@@ -96,12 +96,15 @@ rcl_allocator_t allocator;
 rclc_executor_t executor;
 rcl_node_t node;
 
-geometry_msgs__msg__TransformStamped tfMessage[3];
+geometry_msgs__msg__TransformStamped tfData[3];
+geometry_msgs__msg__TransformStamped tfStaticData[3];
 rcl_subscription_t twistSubscriber;
 geometry_msgs__msg__Twist twistMessage;
 
-tf2_msgs__msg__TFMessage tf_message;
-rcl_publisher_t publisher;
+tf2_msgs__msg__TFMessage messageTf;
+rcl_publisher_t publisherTf;
+tf2_msgs__msg__TFMessage messageTfStatic;
+rcl_publisher_t publisherTfStatic;
 #endif // ROS_EN
 
 // Error function in case of unhandeld ros-error
@@ -373,6 +376,48 @@ void loggerTask(void *pvParameters)
   }
 }
 
+// Set tf data
+void setTfData()
+{
+  tfData[0].header.frame_id =
+      micro_ros_string_utilities_set(tfData[0].header.frame_id, "/odom");
+  tfData[0].child_frame_id =
+      micro_ros_string_utilities_set(tfData[0].child_frame_id, "/base_link");
+  tfData[0].transform.translation.x = robotOdom[0];
+  tfData[0].transform.translation.y = robotOdom[1];
+  euler_to_quat(0, 0, robotOdom[2], rosQuaternion);
+  tfData[0].transform.rotation.x = (double)rosQuaternion[1];
+  tfData[0].transform.rotation.y = (double)rosQuaternion[2];
+  tfData[0].transform.rotation.z = (double)rosQuaternion[3];
+  tfData[0].transform.rotation.w = (double)rosQuaternion[0];
+  tfData[0].header.stamp.nanosec = rmw_uros_epoch_millis() * 1000;
+  tfData[0].header.stamp.sec = rmw_uros_epoch_millis() / 1000;
+
+  messageTf.transforms.size = 1;
+  messageTf.transforms.data = tfData;
+}
+
+// Set static tf data
+void setTfStaticData()
+{
+  tfStaticData[0].header.frame_id =
+      micro_ros_string_utilities_set(tfData[1].header.frame_id, "/base_link");
+  tfStaticData[0].child_frame_id =
+      micro_ros_string_utilities_set(tfData[1].child_frame_id, "/laser_link");
+  tfStaticData[0].transform.translation.x = 0;
+  tfStaticData[0].transform.translation.y = 0;
+  tfStaticData[0].transform.translation.z = 0.08;
+  tfStaticData[0].transform.rotation.x = 0;
+  tfStaticData[0].transform.rotation.y = 0;
+  tfStaticData[0].transform.rotation.z = 0;
+  tfStaticData[0].transform.rotation.w = 1;
+  tfStaticData[0].header.stamp.nanosec = rmw_uros_epoch_millis() * 1000;
+  tfStaticData[0].header.stamp.sec = rmw_uros_epoch_millis() / 1000;
+
+  messageTfStatic.transforms.size = 1;
+  messageTfStatic.transforms.data = tfStaticData;
+}
+
 // Setup
 void setup()
 {
@@ -410,12 +455,19 @@ void setup()
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   // create node
   RCCHECK(rclc_node_init_default(&node, "Edurob", "", &support));
-  // create publisher
+  // create tf publisher
   RCCHECK(rclc_publisher_init_default(
-      &publisher,
+      &publisherTf,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
       "/tf"));
+
+  // create tf publisher
+  RCCHECK(rclc_publisher_init_default(
+      &publisherTfStatic,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+      "/tf_static"));
 
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
@@ -428,18 +480,6 @@ void setup()
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &twistSubscriber, &twistMessage, &subscription_callback, ON_NEW_DATA));
 
-  tfMessage[0].header.frame_id =
-      micro_ros_string_utilities_set(tfMessage[0].header.frame_id, "/odom");
-  tfMessage[0].child_frame_id =
-      micro_ros_string_utilities_set(tfMessage[0].child_frame_id, "/base_link");
-
-  tfMessage[1].header.frame_id =
-      micro_ros_string_utilities_set(tfMessage[1].header.frame_id, "/base_link");
-  tfMessage[1].child_frame_id =
-      micro_ros_string_utilities_set(tfMessage[1].child_frame_id, "/laser_link");
-
-  tf_message.transforms.size = 3;
-  tf_message.transforms.data = tfMessage;
 #endif // ROS_EN
 }
 
@@ -459,28 +499,10 @@ void loop()
 
   if (rmw_uros_epoch_synchronized())
   {
-    tf_message.transforms.data[0].transform.translation.x = robotOdom[0];
-    tf_message.transforms.data[0].transform.translation.y = robotOdom[1];
-    euler_to_quat(0, 0, robotOdom[2], rosQuaternion);
-    tf_message.transforms.data[0].transform.rotation.x = (double)rosQuaternion[1];
-    tf_message.transforms.data[0].transform.rotation.y = (double)rosQuaternion[2];
-    tf_message.transforms.data[0].transform.rotation.z = (double)rosQuaternion[3];
-    tf_message.transforms.data[0].transform.rotation.w = (double)rosQuaternion[0];
-    tf_message.transforms.data[0].header.stamp.nanosec = (rmw_uros_epoch_millis()) * 1000;
-    tf_message.transforms.data[0].header.stamp.sec = (rmw_uros_epoch_millis()) / 1000;
-
-    tf_message.transforms.data[1].transform.translation.x = 0;
-    tf_message.transforms.data[1].transform.translation.y = 0;
-    tf_message.transforms.data[1].transform.translation.z = 0.08;
-    tf_message.transforms.data[1].transform.rotation.x = 0;
-    tf_message.transforms.data[1].transform.rotation.y = 0;
-    tf_message.transforms.data[1].transform.rotation.z = 0;
-    tf_message.transforms.data[1].transform.rotation.w = 1;
-    // tf_message.transforms.data[1].header.stamp.nanosec = rmw_uros_epoch_millis() * 1000;
-    tf_message.transforms.data[1].header.stamp.nanosec = tf_message.transforms.data[0].header.stamp.nanosec;
-    tf_message.transforms.data[1].header.stamp.sec = tf_message.transforms.data[0].header.stamp.sec;
-
-    RCSOFTCHECK(rcl_publish(&publisher, &tf_message, NULL));
+    setTfData();
+    setTfStaticData();
+    RCSOFTCHECK(rcl_publish(&publisherTf, &messageTf, NULL));
+    RCSOFTCHECK(rcl_publish(&publisherTf, &messageTfStatic, NULL));
   }
 
   RCCHECK(rclc_executor_spin_some(&executor, 0));
