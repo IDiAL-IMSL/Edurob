@@ -1,5 +1,5 @@
 #define ROS_EN
-// #define ROS_CON_WIFI //Use WIFI instead of Serial (USB)
+// #define ROS_CON_WIFI // Use WIFI instead of Serial (USB)
 
 // #define MECANUM
 // #define DIFF
@@ -55,6 +55,7 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 #include <geometry_msgs/msg/twist.h>
 #include <geometry_msgs/msg/transform_stamped.h>
 #include <tf2_msgs/msg/tf_message.h>
+#include <custom_message/msg/speed.h>
 #endif ROS_EN
 
 // Project specific headers
@@ -85,8 +86,9 @@ Vector3d robotSpeed;         // Vector with translationional and rotational robo
 Vector3d robotSpeedMax;      // Vector with translationional and rotational robot speeds in m/s and rad/s  (X(m/s), Y(m/s), Z(rad/s))
 Vector3d robotSpeedAcc;      // Vector with translationional and rotational robot speeds in m/s and rad/s  (X(m/s), Y(m/s), Z(rad/s))
 Vector4d wheelSpeedSetpoint; // Wheel speeds in rad/s
-Vector3d robotOdom;          // Odometry
-Vector4d robotOdomSpeed;     // Odometry
+Vector3d robotOdom;          // Odometry Position
+Vector4d robotWheelSpeed;    // Current wheel speeds
+Vector3d robotOdomSpeed;     // Odometry Speed
 double rosQuaternion[4];     // Quaternion for ROS transform message
 
 #ifdef ROS_EN
@@ -98,6 +100,7 @@ rcl_node_t node;
 
 geometry_msgs__msg__TransformStamped tfData[3];
 geometry_msgs__msg__TransformStamped tfStaticData[3];
+int32_t speedData[4];
 rcl_subscription_t twistSubscriber;
 geometry_msgs__msg__Twist twistMessage;
 
@@ -105,6 +108,8 @@ tf2_msgs__msg__TFMessage messageTf;
 rcl_publisher_t publisherTf;
 tf2_msgs__msg__TFMessage messageTfStatic;
 rcl_publisher_t publisherTfStatic;
+custom_message__msg__Speed messageSpeed;
+rcl_publisher_t publisherSpeed;
 #endif // ROS_EN
 
 // Error function in case of unhandeld ros-error
@@ -259,13 +264,13 @@ void initMatrix()
 
 #ifdef OMNI4
   // Omni 4 Wheels
-  kinematik << -(1), (1), (sqrt(2) * 0.08305),
-      -(1), -(1), -(sqrt(2) * 0.08305),
-      -(1), -(1), (sqrt(2) * 0.08305),
-      -(1), (1), -(sqrt(2) * 0.08305);
+  kinematik << -(1), -(1), (sqrt(2) * 0.08305),
+      -(1), (1), -(sqrt(2) * 0.08305),
+      -(1), (1), (sqrt(2) * 0.08305),
+      -(1), -(1), -(sqrt(2) * 0.08305);
 
   kinematikInv << -sqrt(2) / 2, -sqrt(2) / 2, -sqrt(2) / 2, -sqrt(2) / 2,
-      sqrt(2) / 2, -sqrt(2) / 2, -sqrt(2) / 2, sqrt(2) / 2,
+      -sqrt(2) / 2, sqrt(2) / 2, sqrt(2) / 2, -sqrt(2) / 2,
       1 / (2 * (sqrt(2) * 0.08305)), -1 / (2 * (sqrt(2) * 0.08305)), 1 / (2 * (sqrt(2) * 0.08305)), -1 / (2 * (sqrt(2) * 0.08305));
 
   kinematik = ((sqrt(2) / (2))) * kinematik;
@@ -350,13 +355,13 @@ void speedControllerTask(void *pvParameters)
     }
     for (int i = 0; i < NumMotors; i++)
     {
-      robotOdomSpeed[i] = inputs[i][windowIndex];
+      robotWheelSpeed[i] = inputs[i][windowIndex];
     }
-    Eigen::Vector3d helper = (wheelRadius * kinematikInv * robotOdomSpeed);
-    rotate2D(robotOdom[2], helper[0], helper[1]);
-    robotOdom[0] = helper[0] / 200 + robotOdom[0];
-    robotOdom[1] = helper[1] / 200 + robotOdom[1];
-    robotOdom[2] = helper[2] / 200 + robotOdom[2];
+    robotOdomSpeed = (wheelRadius * kinematikInv * robotWheelSpeed);
+    rotate2D(robotOdom[2], robotOdomSpeed[0], robotOdomSpeed[1]);
+    robotOdom[0] = robotOdomSpeed[0] / 200 + robotOdom[0];
+    robotOdom[1] = robotOdomSpeed[1] / 200 + robotOdom[1];
+    robotOdom[2] = robotOdomSpeed[2] / 200 + robotOdom[2];
     windowIndex = (windowIndex + 1) % windowSize;
   }
 }
@@ -401,9 +406,9 @@ void setTfData()
 void setTfStaticData()
 {
   tfStaticData[0].header.frame_id =
-      micro_ros_string_utilities_set(tfData[1].header.frame_id, "/base_link");
+      micro_ros_string_utilities_set(tfStaticData[0].header.frame_id, "/base_link");
   tfStaticData[0].child_frame_id =
-      micro_ros_string_utilities_set(tfData[1].child_frame_id, "/laser_link");
+      micro_ros_string_utilities_set(tfStaticData[0].child_frame_id, "/laser_link");
   tfStaticData[0].transform.translation.x = 0;
   tfStaticData[0].transform.translation.y = 0;
   tfStaticData[0].transform.translation.z = 0.08;
@@ -443,7 +448,13 @@ void setup()
 
 #ifdef ROS_EN
 #ifdef ROS_CON_WIFI
-  set_microros_wifi_transports("hotspot", "hotspotwifikey", "10.0.102.64", 8888);
+  Serial.println("Connecting via Wifi...");
+  // set_microros_wifi_transports("imslhotspot", "imslhotspotwifikey", "10.0.103.67", 8888);
+
+  set_microros_wifi_transports("ESPNET", "espnetwifikey", "10.0.103.67", 8888);
+  Serial.print("Connected via Wifi (IP: ");
+  Serial.print(WiFi.localIP());
+  Serial.println(")");
   delay(2000);
 #endif // ROS_CON_WIFI
 #ifndef ROS_CON_WIFI
@@ -463,11 +474,23 @@ void setup()
       "/tf"));
 
   // create tf publisher
-  RCCHECK(rclc_publisher_init_default(
+  // Set publisher QoS
+
+  rmw_qos_profile_t rmw_qos_profile_tfstatic = {RMW_QOS_POLICY_HISTORY_KEEP_LAST, 10U, RMW_QOS_POLICY_RELIABILITY_RELIABLE, RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL, {0ULL, 0ULL}, {0ULL, 0ULL}, RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT, {0ULL, 0ULL}, false};
+
+  RCCHECK(rclc_publisher_init(
       &publisherTfStatic,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-      "/tf_static"));
+      "/tf_static",
+      &rmw_qos_profile_tfstatic));
+
+  // create speed publisher
+  RCCHECK(rclc_publisher_init_default(
+      &publisherSpeed,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(custom_message, msg, Speed),
+      "/fixposition/speed"));
 
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
@@ -495,14 +518,21 @@ void loop()
 
 #ifdef ROS_EN
 
-  RCCHECK(rmw_uros_sync_session(100)); // Synchronize time
+  rmw_uros_sync_session(100); // Synchronize time
 
   if (rmw_uros_epoch_synchronized())
   {
+
+    speedData[0] = sqrt(robotOdomSpeed[0] * robotOdomSpeed[0] + robotOdomSpeed[1] * robotOdomSpeed[1]) * 1000; // Current Speed in mm/s
+    speedData[1] = robotOdomSpeed[2] * 1000;                                                                   // Current rotational speed in mrad/s
+    messageSpeed.speeds.capacity = 2;
+    messageSpeed.speeds.data = speedData;
+    messageSpeed.speeds.size = 2;
     setTfData();
     setTfStaticData();
     RCSOFTCHECK(rcl_publish(&publisherTf, &messageTf, NULL));
     RCSOFTCHECK(rcl_publish(&publisherTf, &messageTfStatic, NULL));
+    RCSOFTCHECK(rcl_publish(&publisherSpeed, &messageSpeed, NULL));
   }
 
   RCCHECK(rclc_executor_spin_some(&executor, 0));
