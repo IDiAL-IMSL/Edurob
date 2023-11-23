@@ -1,3 +1,5 @@
 
 Edurob/build/*
 Edurob/.vscode/*
+*.s#*
+*.b#*
