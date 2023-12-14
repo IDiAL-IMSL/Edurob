@@ -147,12 +147,15 @@ const void rotate2D(float r, double &x, double &y)
   x = temp;
 }
 
+#ifdef ROS_EN
 // Twist message cb
 void subscription_callback(const void *msgin)
 {
   const geometry_msgs__msg__Twist *msga = (const geometry_msgs__msg__Twist *)msgin;
   robotSpeedSetpoint << msga->linear.x, msga->linear.y, msga->angular.z;
 }
+
+#endif //ROS_EN
 
 // Print content of Eigen::MatrixXd
 void print_mtxd(const Eigen::MatrixXd &X)
@@ -327,6 +330,11 @@ void speedControllerTask(void *pvParameters)
       {
         robotSpeed[i] = -robotSpeedMax[i];
       }
+
+      if (robotSpeed[i] < 0.000001 && robotSpeed[i] > -0.000001)
+      {
+        robotSpeed[i] = 0;
+      }
     }
     wheelSpeedSetpoint = (1 / wheelRadius) * kinematik * robotSpeed;
     for (int i = 0; i < NumMotors; i++)
@@ -381,6 +389,7 @@ void loggerTask(void *pvParameters)
   }
 }
 
+#ifdef ROS_EN
 // Set tf data
 void setTfData()
 {
@@ -401,7 +410,9 @@ void setTfData()
   messageTf.transforms.size = 1;
   messageTf.transforms.data = tfData;
 }
+#endif //ROS_EN
 
+#ifdef ROS_EN
 // Set static tf data
 void setTfStaticData()
 {
@@ -422,6 +433,7 @@ void setTfStaticData()
   messageTfStatic.transforms.size = 1;
   messageTfStatic.transforms.data = tfStaticData;
 }
+#endif //ROS_EN
 
 // Setup
 void setup()
