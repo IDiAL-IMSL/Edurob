@@ -1,4 +1,4 @@
-#define ROS_EN
+// #define ROS_EN
 // #define ROS_CON_WIFI // Use WIFI instead of Serial (USB)
 
 // #define MECANUM
@@ -55,7 +55,6 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 #include <geometry_msgs/msg/twist.h>
 #include <geometry_msgs/msg/transform_stamped.h>
 #include <tf2_msgs/msg/tf_message.h>
-#include <custom_message/msg/speed.h>
 #endif ROS_EN
 
 // Project specific headers
@@ -100,7 +99,6 @@ rcl_node_t node;
 
 geometry_msgs__msg__TransformStamped tfData[3];
 geometry_msgs__msg__TransformStamped tfStaticData[3];
-int32_t speedData[4];
 rcl_subscription_t twistSubscriber;
 geometry_msgs__msg__Twist twistMessage;
 
@@ -108,7 +106,6 @@ tf2_msgs__msg__TFMessage messageTf;
 rcl_publisher_t publisherTf;
 tf2_msgs__msg__TFMessage messageTfStatic;
 rcl_publisher_t publisherTfStatic;
-custom_message__msg__Speed messageSpeed;
 rcl_publisher_t publisherSpeed;
 #endif // ROS_EN
 
@@ -497,13 +494,6 @@ void setup()
       "/tf_static",
       &rmw_qos_profile_tfstatic));
 
-  // create speed publisher
-  RCCHECK(rclc_publisher_init_default(
-      &publisherSpeed,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(custom_message, msg, Speed),
-      "/fixposition/speed"));
-
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
       &twistSubscriber,
@@ -534,17 +524,10 @@ void loop()
 
   if (rmw_uros_epoch_synchronized())
   {
-
-    speedData[0] = sqrt(robotOdomSpeed[0] * robotOdomSpeed[0] + robotOdomSpeed[1] * robotOdomSpeed[1]) * 1000; // Current Speed in mm/s
-    speedData[1] = robotOdomSpeed[2] * 1000;                                                                   // Current rotational speed in mrad/s
-    messageSpeed.speeds.capacity = 2;
-    messageSpeed.speeds.data = speedData;
-    messageSpeed.speeds.size = 2;
     setTfData();
     setTfStaticData();
     RCSOFTCHECK(rcl_publish(&publisherTf, &messageTf, NULL));
     RCSOFTCHECK(rcl_publish(&publisherTf, &messageTfStatic, NULL));
-    RCSOFTCHECK(rcl_publish(&publisherSpeed, &messageSpeed, NULL));
   }
 
   RCCHECK(rclc_executor_spin_some(&executor, 0));

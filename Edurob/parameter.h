@@ -11,7 +11,7 @@ static const float maxTSpeed = 0.5;            // Maximum translational speed in
 static const float maxRSpeed = 1.5;            // Maximum rotational speed in rad/s
 static const float maxTAccel = 0.5;            // Maximum translational acceleration in m/s²
 static const float maxRAccel = 1.5;            // Maximum rotational acceleration in rad/s²
-static const int EncoderDir[4] = {1, 1, 1, 1}; // Counting direction of encoderchannels (+1 or -1)
+static const int EncoderDir[4] = {-1, -1, -1, -1}; // Counting direction of encoderchannels (+1 or -1)
 static const int MotorDir[4] = {1, 1, 1, 1};   // Direction of motors (+1 or -1)
 // #############-USER-CODE-END-#####################
 
