@@ -119,14 +119,15 @@ bool ESP_Counter::init(int unit, int pinA, int pinB) {
   return true;
 }
 
-uint64_t ESP_Counter::getCount() {
+int64_t ESP_Counter::getCount() {
   if (is_init) {
     pcnt_get_counter_value(pcnt_unit, &r_enc_count);
-    uint64_t count = longcounter[pcnt_unit] + r_enc_count;
+    int64_t count = longcounter[pcnt_unit] + r_enc_count;
     return count;
   }
   return 0;
 }
+
 
 bool ESP_Counter::setFilter(uint16_t param) {
   if (pcnt_set_filter_value(pcnt_unit, param) != ESP_OK) return false;

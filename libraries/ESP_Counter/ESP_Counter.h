@@ -13,7 +13,7 @@ class ESP_Counter {
       is_init = false;
     }
     bool init(int unit, int pinA, int pinB);
-    uint64_t getCount();
+    int64_t getCount();
     bool setFilter(uint16_t param);
   
   private:

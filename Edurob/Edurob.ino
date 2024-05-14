@@ -1,10 +1,6 @@
-// #define ROS_EN
-// #define ROS_CON_WIFI // Use WIFI instead of Serial (USB)
+#define ROS_EN
+#define ROS_CON_WIFI // Use WIFI instead of Serial (USB)
 
-// #define MECANUM
-// #define DIFF
-#define OMNI4
-// #define OMNI3
 
 #ifdef ROS_EN
 #define RCCHECK(fn)              \
@@ -59,6 +55,10 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 
 // Project specific headers
 #include "parameter.h"
+
+// kinematik header
+#include "kinematik.h"
+
 
 // Hardware
 static ESP_Counter WheelEncoder[NumMotors];      // Hardware-Encoder-Units
@@ -219,8 +219,8 @@ void initPID()
     speedControllerParam[i].i = 0.08;
     speedControllerParam[i].d = 0.0;
     speedControllerParam[i].sampleTimeMs = sampleTime;
-    speedControllerParam[i].outMin = -100;
-    speedControllerParam[i].outMax = 100;
+    speedControllerParam[i].outMin = -(nMax / 60.0)*  2*PI;
+    speedControllerParam[i].outMax = (nMax / 60.0)*  2*PI;
 
     speedController[i] = new AutoPID(&speedControllerParam[i].input, &speedControllerParam[i].setpoint, &speedControllerParam[i].output, speedControllerParam[i].outMin, speedControllerParam[i].outMax, speedControllerParam[i].p, speedControllerParam[i].i, speedControllerParam[i].d);
     speedController[i]->setTimeStep(speedControllerParam[i].sampleTimeMs);
@@ -234,47 +234,23 @@ void initMatrix()
 
 #ifdef MECANUM
   // Mecanum
-  kinematik << 1, 1, (l1 + l2),
-      1, -1, -(l1 + l2),
-      1, -1, (l1 + l2),
-      1, 1, -(l1 + l2);
-
-  kinematikInv << 1, 1, 1, 1,
-      1, -1, 1, -1,
-      1.0 / (l1 + l2), -1.0 / (l1 + l2), 1.0 / (l1 + l2), -1.0 / (l1 + l2);
-
-  kinematik = 1 * kinematik;
-  kinematikInv = (1 / 4.0) * kinematikInv;
+  mecanum_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
 #endif
 
 #ifdef DIFF
   // Diff
-  kinematik << 1, 0, l2,
-      1, 0, -l2,
-      1, 0, l2,
-      1, 0, -l2;
+  differential_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
 
-  kinematikInv << 1, 1, 1, 1,
-      0, 0, 0, 0,
-      1.0 / l2, -1.0 / l2, 1.0 / l2, -1.0 / l2;
-
-  kinematik = 1 * kinematik;
-  kinematikInv = (1 / 4.0) * kinematikInv;
 #endif
 
 #ifdef OMNI4
   // Omni 4 Wheels
-  kinematik << -(1), -(1), (sqrt(2) * 0.08305),
-      -(1), (1), -(sqrt(2) * 0.08305),
-      -(1), (1), (sqrt(2) * 0.08305),
-      -(1), -(1), -(sqrt(2) * 0.08305);
+  omni_4_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
+#endif
 
-  kinematikInv << -sqrt(2) / 2, -sqrt(2) / 2, -sqrt(2) / 2, -sqrt(2) / 2,
-      -sqrt(2) / 2, sqrt(2) / 2, sqrt(2) / 2, -sqrt(2) / 2,
-      1 / (2 * (sqrt(2) * 0.08305)), -1 / (2 * (sqrt(2) * 0.08305)), 1 / (2 * (sqrt(2) * 0.08305)), -1 / (2 * (sqrt(2) * 0.08305));
-
-  kinematik = ((sqrt(2) / (2))) * kinematik;
-  kinematikInv = (0.5) * kinematikInv;
+#ifdef OMNI3
+  // Omni 3 Wheels
+  omni_3_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
 #endif
 
   robotSpeedSetpoint << 0.0,
@@ -362,11 +338,14 @@ void speedControllerTask(void *pvParameters)
     {
       robotWheelSpeed[i] = inputs[i][windowIndex];
     }
+
     robotOdomSpeed = (wheelRadius * kinematikInv * robotWheelSpeed);
-    rotate2D(robotOdom[2], robotOdomSpeed[0], robotOdomSpeed[1]);
-    robotOdom[0] = robotOdomSpeed[0] / 200 + robotOdom[0];
-    robotOdom[1] = robotOdomSpeed[1] / 200 + robotOdom[1];
-    robotOdom[2] = robotOdomSpeed[2] / 200 + robotOdom[2];
+
+    robotOdomSpeed = robot_vel_to_world_vel(robotOdom[2],robotOdomSpeed);// Conversion Velocity in robotcoordinates to velocity in worldcoordinates
+
+    robotOdom[0] = robotOdomSpeed[0] * sampleTime/1000 + robotOdom[0];
+    robotOdom[1] = robotOdomSpeed[1] * sampleTime/1000 + robotOdom[1];
+    robotOdom[2] = robotOdomSpeed[2] * sampleTime/1000 + robotOdom[2];  
     windowIndex = (windowIndex + 1) % windowSize;
   }
 }
@@ -460,7 +439,7 @@ void setup()
   Serial.println("Connecting via Wifi...");
   // set_microros_wifi_transports("imslhotspot", "imslhotspotwifikey", "10.0.103.67", 8888);
 
-  set_microros_wifi_transports("ESPNET", "espnetwifikey", "10.0.103.67", 8888);
+  set_microros_wifi_transports("ESPNET", "espnetwifikey", "10.0.101.248", 8888);
   Serial.print("Connected via Wifi (IP: ");
   Serial.print(WiFi.localIP());
   Serial.println(")");
