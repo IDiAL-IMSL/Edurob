@@ -3,3 +3,8 @@ Edurob/build/*
 Edurob/.vscode/*
 *.s#*
 *.b#*
+Edurob/.pioenvs
+Edurob/.piolibdeps
+Edurob/.clang_complete
+.Edurob/gcc-flags.json
+Edurob/.pio
