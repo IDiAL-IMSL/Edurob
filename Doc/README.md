@@ -1,6 +1,6 @@
 # Getting Started
 [Homepage](https://www.imsl.fh-dortmund.de/mobile-roboter/edurob/)
-## Initial Setup
+## Initial Setup for Version 2
 
 - Install Visual Studio Code: https://randomnerdtutorials.com/vs-code-platformio-ide-esp32-esp8266-arduino/#1
 - Install PlatformIO extension: https://randomnerdtutorials.com/vs-code-platformio-ide-esp32-esp8266-arduino/#2
@@ -14,7 +14,7 @@
     `#define OMNI4`
 
     `#define OMNI3`
-    
+
 
 ## Next Steps
 - Add your user code in the corresponding segment inside the loop-function
