@@ -1,3 +1,4 @@
+#define ROS_EN
 
 #include <WiFi.h>
 #include "sdkconfig.h"
@@ -15,13 +16,24 @@
 #include <Eigen/QR>      // Calls inverse, determinant, LU decomp., etc.
 using namespace Eigen;   // Eigen related statement; simplifies syntax for declaration of matrices
 
+// ROS
+#ifdef ROS_EN
+#undef ESP32
+#include <ros.h>
+#define ESP32
+#include <stdio.h>
+
+// ROS Messages
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/tfMessage.h>
+#endif ROS_EN
 
 // Project specific headers
 #include "parameter.h"
 
 // kinematik header
 #include "kinematik.h"
-
 
 // Hardware
 static ESP_Counter WheelEncoder[NumMotors];      // Hardware-Encoder-Units
@@ -53,6 +65,18 @@ Vector4d robotWheelSpeed;    // Current wheel speeds
 Vector3d robotOdomSpeed;     // Odometry Speed
 double rosQuaternion[4];     // Quaternion for ROS transform message
 
+// ROS
+#ifdef ROS_EN
+
+ros::NodeHandle nh;
+
+geometry_msgs::TransformStamped tfData;
+geometry_msgs::TransformStamped tfStaticData;
+tf::tfMessage messageTf;
+tf::tfMessage messageTfStatic;
+ros::Publisher tf_pub("/tf", &messageTf);
+ros::Publisher tf_static_pub("/tf_static", &messageTfStatic);
+#endif // ROS_EN
 
 // Error function in case of unhandeld ros-error
 void error_loop()
@@ -81,18 +105,22 @@ const void euler_to_quat(float x, float y, float z, double *q)
   q[3] = c1 * s2 * c3 - s1 * c2 * s3;
 }
 
-//checks the direction of the encoder
-int   checkEncoderDirection(ESP_Counter& encoder){
+// checks the direction of the encoder
+int checkEncoderDirection(ESP_Counter &encoder)
+{
   int count = encoder.getCount();
   delay(500);
   int count2 = encoder.getCount();
-  if(count2>count){
+  if (count2 > count)
+  {
     return 1;
   }
-  else if(count2<count){
+  else if (count2 < count)
+  {
     return -1;
   }
-  else{
+  else
+  {
     return 0;
   }
 }
@@ -105,6 +133,15 @@ const void rotate2D(float r, double &x, double &y)
   x = temp;
 }
 
+#ifdef ROS_EN
+// Twist message cb
+void subscription_callback(const geometry_msgs::Twist &msgin)
+{
+  robotSpeedSetpoint << msgin.linear.x, msgin.linear.y, msgin.angular.z;
+}
+
+ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &subscription_callback);
+#endif ROS_EN
 
 // Print content of Eigen::MatrixXd
 void print_mtxd(const Eigen::MatrixXd &X)
@@ -156,19 +193,20 @@ bool initHardware()
     currentChannel += 2;
   }
   digitalWrite(EnablePIN, HIGH); // Enable motors
-  for(int i = 0; i < NumMotors; i++){
-    MotorPWM[i].setPWM(100 * MotorDir[i]); //Start Motor
+  for (int i = 0; i < NumMotors; i++)
+  {
+    MotorPWM[i].setPWM(100 * MotorDir[i]); // Start Motor
     EncoderDir[i] = checkEncoderDirection(WheelEncoder[i]);
     MotorPWM[i].setPWM(0);
   }
-  delay(1000); //Wait for Encoder to stabilize
-  for(int i = 0; i < NumMotors; i++){
+  delay(1000); // Wait for Encoder to stabilize
+  for (int i = 0; i < NumMotors; i++)
+  {
     WheelEncoder[i].resetCounter();
   }
 
   return true;
 }
-
 
 // Init speed controller
 void initPID()
@@ -304,11 +342,11 @@ void speedControllerTask(void *pvParameters)
 
     robotOdomSpeed = (wheelRadius * kinematikInv * robotWheelSpeed);
 
-    robotOdomSpeed = robot_vel_to_world_vel(robotOdom[2],robotOdomSpeed);// Conversion Velocity in robotcoordinates to velocity in worldcoordinates
+    robotOdomSpeed = robot_vel_to_world_vel(robotOdom[2], robotOdomSpeed); // Conversion Velocity in robotcoordinates to velocity in worldcoordinates
 
-    robotOdom[0] = robotOdomSpeed[0] * sampleTime/1000 + robotOdom[0];
-    robotOdom[1] = robotOdomSpeed[1] * sampleTime/1000 + robotOdom[1];
-    robotOdom[2] = robotOdomSpeed[2] * sampleTime/1000 + robotOdom[2];  
+    robotOdom[0] = robotOdomSpeed[0] * sampleTime / 1000 + robotOdom[0];
+    robotOdom[1] = robotOdomSpeed[1] * sampleTime / 1000 + robotOdom[1];
+    robotOdom[2] = robotOdomSpeed[2] * sampleTime / 1000 + robotOdom[2];
     windowIndex = (windowIndex + 1) % windowSize;
   }
 }
@@ -318,16 +356,53 @@ void loggerTask(void *pvParameters)
 {
   while (true)
   {
-    vTaskDelay(pdMS_TO_TICKS(5));
-    //   Serial.print("Odometry: Xt= ");
-    //   Serial.print(robotOdom[0]);  //current x-position in meters
-    //   Serial.print(", Yt= ");
-    //   Serial.print(robotOdom[1]);  //current y-position in meters
-    //   Serial.print(", Zr= ");
-    //   Serial.println(robotOdom[2]);  //current z-rotation in radians
+    vTaskDelay(pdMS_TO_TICKS(500));
+    Serial.print("Odometry: Xt= ");
+    Serial.print(robotOdom[0]); // current x-position in meters
+    Serial.print(", Yt= ");
+    Serial.print(robotOdom[1]); // current y-position in meters
+    Serial.print(", Zr= ");
+    Serial.println(robotOdom[2]); // current z-rotation in radians
   }
 }
 
+#ifdef ROS_EN
+// Set tf data
+void setTfData()
+{
+  tfData.header.frame_id = "/odom";
+  tfData.child_frame_id = "/base_link";
+  tfData.transform.translation.x = robotOdom[0];
+  tfData.transform.translation.y = robotOdom[1];
+  euler_to_quat(0, 0, robotOdom[2], rosQuaternion);
+  tfData.transform.rotation.x = (double)rosQuaternion[1];
+  tfData.transform.rotation.y = (double)rosQuaternion[2];
+  tfData.transform.rotation.z = (double)rosQuaternion[3];
+  tfData.transform.rotation.w = (double)rosQuaternion[0];
+  tfData.header.stamp = nh.now();
+
+  messageTf.transforms_length = 1;
+  messageTf.transforms = &tfData;
+}
+
+// Set static tf data
+void setTfStaticData()
+{
+  tfStaticData.header.frame_id = "/base_link";
+  tfStaticData.child_frame_id = "/laser";
+  tfStaticData.transform.translation.x = 0;
+  tfStaticData.transform.translation.y = 0;
+  tfStaticData.transform.translation.z = 0.08;
+  tfStaticData.transform.rotation.x = 0;
+  tfStaticData.transform.rotation.y = 0;
+  tfStaticData.transform.rotation.z = 0;
+  tfStaticData.transform.rotation.w = 1;
+  tfStaticData.header.stamp = nh.now();
+
+  messageTfStatic.transforms_length = 1;
+  messageTfStatic.transforms = &tfStaticData;
+}
+#endif ROS_EN
 
 // Setup
 void setup()
@@ -352,6 +427,12 @@ void setup()
       1,            /* Priority of the task. */
       NULL);        /* Task handle. */
 
+#ifdef ROS_EN
+  nh.initNode();
+  nh.advertise(tf_pub);
+  nh.advertise(tf_static_pub);
+  nh.subscribe(sub);
+#endif // ROS_EN
 }
 
 void loop()
@@ -363,5 +444,14 @@ void loop()
   // robotSpeedSetpoint << tx, ty, theta;
 
   // #############-USER-CODE-END-#####################
+
+#ifdef ROS_EN
+  setTfData();
+  setTfStaticData();
+  tf_pub.publish(&messageTf);
+  tf_static_pub.publish(&messageTfStatic);
+  nh.spinOnce();
+#endif // ROS_EN
+
   delay(10);
 }
