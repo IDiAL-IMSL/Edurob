@@ -1,4 +1,4 @@
-#define ROS_EN
+// #define ROS_EN
 
 #include <WiFi.h>
 #include "sdkconfig.h"
@@ -27,7 +27,7 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/tfMessage.h>
-#endif ROS_EN
+#endif // ROS_EN
 
 // Project specific headers
 #include "parameter.h"
@@ -35,11 +35,17 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 // kinematik header
 #include "kinematik.h"
 
+// Dynamixel
+#include <Dynamixel2Arduino.h>
+#include "ESP32SerialPortHandler.cpp"
+
 // Hardware
-static ESP_Counter WheelEncoder[NumMotors];      // Hardware-Encoder-Units
-static DCPWM MotorPWM[NumMotors];                // Hardware-PWM-Units
-static AutoPID *speedController[NumMotors];      // PID-Units
-static pidParam speedControllerParam[NumMotors]; // PID-Parameter
+static ESP_Counter WheelEncoder[NumMotors];                                        // Hardware-Encoder-Units
+static DCPWM MotorPWM[NumMotors];                                                  // Hardware-PWM-Units
+static AutoPID *speedController[NumMotors];                                        // PID-Units
+static pidParam speedControllerParam[NumMotors];                                   // PID-Parameter
+Dynamixel2Arduino dxl;                                                             // Dynmaixel-Device
+ESP32SerialPortHandler esp_dxl_port(Serial1, DXL_RX_PIN, DXL_TX_PIN, DXL_DIR_PIN); // Dynamixel-Serial-Interface
 
 // Variables
 int64_t encoderOld[NumMotors];       // Last encoder values
@@ -141,7 +147,7 @@ void subscription_callback(const geometry_msgs::Twist &msgin)
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &subscription_callback);
-#endif ROS_EN
+#endif // ROS_EN
 
 // Print content of Eigen::MatrixXd
 void print_mtxd(const Eigen::MatrixXd &X)
@@ -169,7 +175,7 @@ void print_mtxd(const Eigen::MatrixXd &X)
   Serial.println();
 }
 
-// Init Encoder- and PWM-Units
+// Init Encoder- and PWM-Units and Dynamixel
 bool initHardware()
 {
   pinMode(EnablePIN, OUTPUT);   // Motor enable signal
@@ -185,7 +191,7 @@ bool initHardware()
   int currentChannel = 0;
   for (int i = 0; i < NumMotors; i++)
   {
-    if (!MotorPWM[i].init(30000, 10, currentChannel, currentChannel + 1, PWM_A[i], PWM_B[i]))
+    if (!MotorPWM[i].init(1000, 10, currentChannel, currentChannel + 1, PWM_A[i], PWM_B[i]))
     {
       return false;
     }
@@ -193,18 +199,26 @@ bool initHardware()
     currentChannel += 2;
   }
   digitalWrite(EnablePIN, HIGH); // Enable motors
-  for (int i = 0; i < NumMotors; i++)
-  {
-    MotorPWM[i].setPWM(100 * MotorDir[i]); // Start Motor
-    EncoderDir[i] = checkEncoderDirection(WheelEncoder[i]);
-    MotorPWM[i].setPWM(0);
-  }
-  delay(1000); // Wait for Encoder to stabilize
-  for (int i = 0; i < NumMotors; i++)
-  {
-    WheelEncoder[i].resetCounter();
-  }
+  // for (int i = 0; i < NumMotors; i++)
+  // {
+  //   MotorPWM[i].setPWM(100 * MotorDir[i]); // Start Motor
+  //   EncoderDir[i] = checkEncoderDirection(WheelEncoder[i]);
+  //   MotorPWM[i].setPWM(0);
+  // }
+  // delay(1000); // Wait for Encoder to stabilize
+  // for (int i = 0; i < NumMotors; i++)
+  // {
+  //   WheelEncoder[i].resetCounter();
+  // }
 
+  // dxl.setPort(esp_dxl_port); // Initialize the Dynamixel-Servo
+  // dxl.setPortProtocolVersion(2.0);
+  // dxl.begin(57600);
+  // dxl.torqueOff(10);
+  // dxl.setOperatingMode(10, OP_POSITION);
+  // dxl.torqueOn(10);
+  // dxl.setGoalCurrent(10, 100, UNIT_PERCENT);
+  // dxl.setGoalPosition(10, 4092.0, UNIT_RAW);
   return true;
 }
 
@@ -402,30 +416,30 @@ void setTfStaticData()
   messageTfStatic.transforms_length = 1;
   messageTfStatic.transforms = &tfStaticData;
 }
-#endif ROS_EN
+#endif // ROS_EN
 
 // Setup
 void setup()
 {
   Serial.begin(115200);
   initHardware();
-  initPID();
-  initMatrix();
+  //initPID();
+  //initMatrix();
 
-  xTaskCreate(
-      speedControllerTask,   /* Task function. */
-      "speedControllerTask", /* String with name of task. */
-      100000,                /* Stack size in bytes. */
-      NULL,                  /* Parameter passed as input of the task */
-      5,                     /* Priority of the task. */
-      NULL);                 /* Task handle. */
-  xTaskCreate(
-      loggerTask,   /* Task function. */
-      "loggerTask", /* String with name of task. */
-      20000,        /* Stack size in bytes. */
-      NULL,         /* Parameter passed as input of the task */
-      1,            /* Priority of the task. */
-      NULL);        /* Task handle. */
+  // xTaskCreate(
+  //     speedControllerTask,   /* Task function. */
+  //     "speedControllerTask", /* String with name of task. */
+  //     100000,                /* Stack size in bytes. */
+  //     NULL,                  /* Parameter passed as input of the task */
+  //     5,                     /* Priority of the task. */
+  //     NULL);                 /* Task handle. */
+  // xTaskCreate(
+  //     loggerTask,   /* Task function. */
+  //     "loggerTask", /* String with name of task. */
+  //     20000,        /* Stack size in bytes. */
+  //     NULL,         /* Parameter passed as input of the task */
+  //     1,            /* Priority of the task. */
+  //     NULL);        /* Task handle. */
 
 #ifdef ROS_EN
   nh.initNode();
@@ -437,12 +451,17 @@ void setup()
 
 void loop()
 {
+  MotorPWM[0].setPWM(100); // Raw
+  MotorPWM[1].setPWM(100); // Raw
+  MotorPWM[2].setPWM(100); // Raw
+  MotorPWM[3].setPWM(100); // Raw
   digitalWrite(EnablePIN, HIGH); // Enable motors
 
   // #############-USER-CODE-START-#####################
-  // double tx = 0.0, ty = 0.0, theta = 0.0;
-  // robotSpeedSetpoint << tx, ty, theta;
-
+  //double tx = 0.1, ty = 0.0, theta = 0.0;
+  //robotSpeedSetpoint << tx, ty, theta;
+  //dxl.setGoalCurrent(11, 100, UNIT_PERCENT);
+  // dxl.setGoalPosition(11, 4092.0, UNIT_RAW);
   // #############-USER-CODE-END-#####################
 
 #ifdef ROS_EN
@@ -453,5 +472,5 @@ void loop()
   nh.spinOnce();
 #endif // ROS_EN
 
-  delay(10);
+  delay(1000);
 }
