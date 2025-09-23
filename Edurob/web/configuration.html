@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="layout-col">
+        <h1>Configuration</h1>
+        <form action="/configuration" method="get">
+            <div class="layout-col">
+            <div class="box">
+                <table><tbody></tbody>
+                <tr><td><label for="radabstand">Radabstand:</label></td><td><input type="number" id="radabstand" name="radabstand" min="0" step="0.0001" placeholder="Radabstand in meters" required></td></tr>
+                
+                <tr><td><label for="axenabstand">Axenabstand:</label></td><td><input type="number" id="axenabstand" name="axenabstand" min="0" step="0.0001" placeholder="Axenabstand in meters" required></td></tr>
+                
+                <tr><td><label for="radradius">Radradius:</label></td><td><input type="number" id="radradius" name="radradius" min="0" step="0.0001" placeholder="Radradius in meters" required></td></tr>
+                
+                <tr><td><label for="encoderaufloesung">Encoderauflösung:</label></td><td><input type="number" id="encoderaufloesung" name="encoderaufloesung" min="1" max="65535" step="1" placeholder="Encoderauflösung (integer)" value="28" required></td></tr>
+                
+                <tr><td><label for="uebersetzung">Übersetzung:</label></td><td><input type="number" id="uebersetzung" name="uebersetzung" min="1" max="65535" step="1" placeholder="Übersetzung (integer)" value="100" required></td></tr>
+                
+                <tr><td><label for="kinematicOption">Kinematic Option:</label></td><td>
+                <select id="kinematicOption" name="kinematicOption" required>
+                    <option value="0">Mecanum</option>
+                    <option value="1">Omni4</option>
+                    <option value="2">Omni3</option>
+                    <option value="3">Diff</option>
+                </select></td></tr>
+                </tbody>
+                </table>
+            </div>
+            <button class="link" type="submit">Save</button>
+            </div>
+        </form>
+        <button class="link" onclick="window.location.href='/'">Hauptmenü</button>
+    </div>
+ <script>
+        // Restore inputs from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        document.querySelectorAll('input[name]').forEach(input => {
+            const name = input.name;
+            if (urlParams.has(name)) {
+                input.value = urlParams.get(name);
+            }
+        });
+        window.onload = function () {
+            
+            // Initialize Server-Sent Events (SSE)
+            let eventSource = new EventSource('/sse?type=configuration');
+
+            // SSE feedback update
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    // Update input fields with latest values
+                    document.getElementById("radabstand").value = data.radabstand;
+                    document.getElementById("axenabstand").value = data.axenabstand;
+                    document.getElementById("radradius").value = data.radradius;
+                    document.getElementById("encoderaufloesung").value = data.encoderaufloesung;
+                    document.getElementById("uebersetzung").value = data.uebersetzung;
+                    document.getElementById("kinematicOption").value = data.kinematicOption;
+
+                } catch (err) {
+                    console.error("SSE data error:", err);
+                }
+                eventSource.close();
+            };
+
+        }
+    </script>
+</body>
+</html>

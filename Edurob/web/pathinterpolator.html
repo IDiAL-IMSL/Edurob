@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Path Interpolator Configuration</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="layout-col">
+        <h1>Path Interpolator Configuration</h1>
+        <form class="layout-col" action="/pathplanning" method="get">
+
+            <div class="status">
+                <label for="translationalSpeed">Translatorische Geschwindigkeit (m/s):</label>
+                <input type="number" id="translationalSpeed" name="translationalSpeed" min="0" step="0.01" placeholder="Translatorische Geschwindigkeit in m/s" value="0.15" required>
+            </div>
+            <div class="status">
+                <label for="translationalAcceleration">Translatorische Beschleunigung (m/s²):</label>
+                <input type="number" id="translationalAcceleration" name="translationalAcceleration" min="0" step="0.01" placeholder="Translatorische Beschleunigung in m/s²" value="0.05" required>
+            </div>
+            <div class="status">
+                <label for="rotationalSpeed">Rotatorische Geschwindigkeit (degrees/s):</label>
+                <input type="number" id="rotationalSpeed" name="rotationalSpeed" min="0" step="0.01" placeholder="Rotatorische Geschwindigkeit in degrees/s" value="0.2" required>
+            </div>
+            <div class="status">
+                <label for="rotationalAcceleration">Rotatorische Beschleunigung (degrees/s²):</label>
+                <input type="number" id="rotationalAcceleration" name="rotationalAcceleration" min="0" step="0.01" placeholder="Rotatorische Beschleunigung in degrees/s²" value="0.05" required>
+            </div>
+
+
+
+            <!-- Hidden input to track number of points -->
+            <input type="hidden" id="pointCount" name="pointCount" value="2">
+
+            <div class="box" id="pointsContainer">
+                <div class="points-label">
+                    <label>Points:</label><br>
+                    <label>X (m) Y (m) Theta (°)</label>
+                </div>
+                <div class="point">
+                    <input type="number" name="x1" placeholder="X (m)" min="0" step="0.01" value="0" required>
+                    <input type="number" name="y1" placeholder="Y (m)" min="0" step="0.01" value="0" required>
+                    <input type="number" name="theta1" placeholder="Theta (°)" min="0" step="0.01" value="0" required>
+                    <button type="button" class="delete-button" onclick="removePoint(this)">Delete</button>
+                </div>
+                <div class="point">
+                    <input type="number" name="x2" placeholder="X (m)" min="0" step="0.01" required>
+                    <input type="number" name="y2" placeholder="Y (m)" min="0" step="0.01" required>
+                    <input type="number" name="theta2" placeholder="Theta (°)" min="0" step="0.01" required>
+                    <button type="button" class="delete-button" onclick="removePoint(this)">Delete</button>
+                </div>
+                <!-- Additional points will be added here -->
+            </div>
+            
+            <button type="button" id="addPointButton">Add Point</button>
+            <button type="submit">Start</button>
+        </form>
+
+        <button class="link" onclick="window.location.href='/'" >Hauptmenü</button>
+    </div>
+
+    <script>
+        let pointCount = 2;
+        const maxPoints = 6;
+
+        function updatePointCount() {
+            document.getElementById('pointCount').value = pointCount;
+        }
+
+        function removePoint(button) {
+            const pointContainer = button.parentElement;
+            if (pointContainer.parentElement.children.length > 2) {
+                pointContainer.remove();
+                pointCount--;
+                updatePointCount();
+                updatePointNames();
+            } else {
+                alert('You must have at least 2 points.');
+            }
+        }
+
+        function updatePointNames() {
+            const points = document.querySelectorAll('.point');
+            points.forEach((point, index) => {
+                point.querySelectorAll('input').forEach((input, i) => {
+                    const name = ['x', 'y', 'theta'][i];
+                    input.name = `${name}${index + 1}`;
+                });
+            });
+        }
+
+        function addPoint(x = '', y = '', theta = '') {
+            if (pointCount >= maxPoints) {
+                alert("Maximale Punktanzahl erreicht.");
+                return;
+            }
+            pointCount++;
+            const container = document.getElementById('pointsContainer');
+            const newPoint = document.createElement('div');
+            newPoint.classList.add('point');
+            newPoint.innerHTML = `
+                <input type="number" name="x${pointCount}" placeholder="X (m)" min="0" step="0.01" value="${x}" required>
+                <input type="number" name="y${pointCount}" placeholder="Y (m)" min="0" step="0.01" value="${y}" required>
+                <input type="number" name="theta${pointCount}" placeholder="Theta (°)" min="0" step="0.01" value="${theta}" required>
+                <button type="button" class="delete-button" onclick="removePoint(this)">Delete</button>
+            `;
+            container.appendChild(newPoint);
+            updatePointCount();
+        }
+
+        document.getElementById('addPointButton').addEventListener('click', () => addPoint());
+
+        function clearPoints() {
+            const container = document.getElementById('pointsContainer');
+            container.querySelectorAll('.point').forEach((el, index) => {
+                if (index >= 2) el.remove();
+            });
+            const defaults = container.querySelectorAll('.point input');
+            defaults.forEach(input => input.value = 0);
+            pointCount = 2;
+            updatePointCount();
+            updatePointNames();
+        };
+
+       window.onload = function () {
+            const eventSource = new EventSource("/sse?type=pathplanning");
+            eventSource.onmessage = function (event) {
+                try {
+                    const payload = JSON.parse(event.data);
+
+                    // Felder für Bewegung setzen
+                    if (payload.translationalSpeed !== undefined)
+                        document.getElementById('translationalSpeed').value = payload.translationalSpeed;
+
+                    if (payload.translationalAcceleration !== undefined)
+                        document.getElementById('translationalAcceleration').value = payload.translationalAcceleration;
+
+                    if (payload.rotationalSpeed !== undefined)
+                        document.getElementById('rotationalSpeed').value = payload.rotationalSpeed;
+
+                    if (payload.rotationalAcceleration !== undefined)
+                        document.getElementById('rotationalAcceleration').value = payload.rotationalAcceleration;
+
+                    // Punkte laden
+                    const points  = payload.points;
+                    if (Array.isArray(points)) {
+                        clearPoints();
+                        points.forEach((point, i) => {
+                            if (i < 2) {
+                                const inputs = document.querySelectorAll('.point')[i].querySelectorAll('input');
+                                inputs[0].value = point.x;
+                                inputs[1].value = point.y;
+                                inputs[2].value = point.theta;
+                            } else {
+                                addPoint(point.x, point.y, point.theta);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Fehler beim Parsen der Punkte:", e);
+                }
+                eventSource.close();
+            };
+            eventSource.onerror = function () {
+                console.error("SSE fehlgeschlagen.");
+                eventSource.close();
+            };
+        };
+    </script>
+
+</body>
+</html>

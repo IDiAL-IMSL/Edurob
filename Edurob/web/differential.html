@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Kinematik Differential</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="layout-row">
+    <div class="box">
+    <p><strong>Unterstützte Operationen:</strong></p>
+    <ul>
+        <li><code>+</code></li>
+        <li><code>-</code></li>
+        <li><code>*</code></li>
+        <li><code>/</code></li>
+        <li><code>PI</code></li>
+        <li><code>sqrt(x)</code></li>
+        <li><code>sin(x)</code></li>
+        <li><code>cos(x)</code></li>
+        <li><code>tan(x)</code></li>
+        <li><code>pow(x, y)</code> </li>
+    </ul>
+    </div>
+    <div class="layout-col">
+        <h1>Kinematik Konfiguration</h1>
+        <form action="/differential" method="get">
+            <div class="layout-col">
+            <div class="box">
+                <h2>Differential - Matrix</h2>
+                <table><tbody>
+                    <tr><td><input type="string" name="111" required ></td><td><input type="string" name="112" required ></td><td><input type="string" name="113" required ></td></tr>
+                    <tr><td><input type="string" name="121" required ></td><td><input type="string" name="122" required ></td><td><input type="string" name="123" required ></td></tr>
+                    <tr><td><input type="string" name="131" required ></td><td><input type="string" name="132" required ></td><td><input type="string" name="133" required ></td></tr>
+                    <tr><td><input type="string" name="141" required ></td><td><input type="string" name="142" required ></td><td><input type="string" name="143" required ></td></tr>
+                </tbody></table>
+                <label>Scalar:</label>
+                <input type="string" name="1" required >
+                <h2>Inverse-Matrix</h2>
+                <table><tbody>
+                    <tr><td><input type="string" name="211" required ></td><td><input type="string" name="212" required ></td><td><input type="string" name="213" required ></td><td><input type="string" name="214" required ></td></tr>
+                    <tr><td><input type="string" name="221" required ></td><td><input type="string" name="222" required ></td><td><input type="string" name="223" required ></td><td><input type="string" name="224" required ></td></tr>
+                    <tr><td><input type="string" name="231" required ></td><td><input type="string" name="232" required ></td><td><input type="string" name="233" required ></td><td><input type="string" name="234" required ></td></tr>
+                </tbody></table>
+                <label>Scalar:</label>
+                <input type="string" name="2" required >
+            </div>
+            <button class="link" type="submit">Matrix speichern</button>
+            </div>
+        </form>
+        <button class="link" onclick="window.location.href='/'" >Hauptmenü</button>
+    </div>
+    </div>
+
+
+
+
+
+
+
+
+    <script>
+        // Restore inputs from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        document.querySelectorAll('input[name]').forEach(input => {
+            const name = input.name;
+            if (urlParams.has(name)) {
+                input.value = urlParams.get(name);
+            }
+        });
+        window.onload = function () {
+            
+            // Initialize Server-Sent Events (SSE)
+            let eventSource = new EventSource('/sse?type=differential');
+
+            // SSE feedback update
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    const matrix1 = data.matrix || [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];  // 4x3
+                    const matrix2 = data.inverse || [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];  // 3x4
+                    const scalar1 = data.scalar1 || 0;
+                    const scalar2 = data.scalar2 || 0;
+
+                    // Fill matrix inputs
+                    matrix1.forEach((row, i) => {
+                        row.forEach((val, j) => {
+                            const input = document.querySelector(`input[name="${1}${i+1}${j+1}"]`);
+                            if (input) input.value = parseFloat(val).toFixed(2);
+                        });
+                    });
+
+                    // Fill scalar1 input
+                    const scalarInput1 = document.querySelector(`input[name="1"]`);
+                    if (scalarInput1) scalarInput1.value = scalar1.toFixed(2);
+
+                    // Fill Inverse matrix inputs
+                    matrix2.forEach((row, i) => {
+                        row.forEach((val, j) => {
+                            const input = document.querySelector(`input[name="${2}${i+1}${j+1}"]`);
+                            if (input) input.value = parseFloat(val).toFixed(2);
+                        });
+                    });
+
+                    // Fill scalar2 input
+                    const scalarInput2 = document.querySelector(`input[name="2"]`);
+                    if (scalarInput2) scalarInput2.value = scalar2.toFixed(2);
+                } catch (err) {
+                    console.error("SSE data error:", err);
+                }
+                eventSource.close();
+            };
+
+        }
+    </script>
+
+</body>
+</html>

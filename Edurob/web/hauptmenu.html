@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduRob Settings</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="layout-col">
+        <h1>EduRob Settings</h1>
+        <div class="status-container">
+            <div class="status">
+                <div class="status-title">Radabstand:</div>
+                <div class="status-value" id="radabstand">Loading...</div>
+            </div>
+            <div class="status">
+                <div class="status-title">Axenabstand:</div>
+                <div class="status-value" id="axenabstand">Loading...</div>
+            </div>
+            <div class="status">
+                <div class="status-title">Radradius:</div>
+                <div class="status-value" id="radradius">Loading...</div>
+            </div>
+            <div class="status">
+                <div class="status-title">Encoderauflösung:</div>
+                <div class="status-value" id="encoderaufloesung">Loading...</div>
+            </div>
+            <div class="status">
+                <div class="status-title">Übersetzung:</div>
+                <div class="status-value" id="uebersetzung">Loading...</div>
+            </div>
+            <div class="status">
+                <div class="status-title">Kinematik:</div>
+                <div class="status-value" id="kinematik">Loading...</div>
+            </div>
+        </div>
+        <button class="link" onclick="window.location.href='/configuration'" >Zu EduRob Settings</button>
+        <button class="link" onclick="window.location.href='/kinematiklinks'" >Zu Kinematik</button>
+
+        <div class="link">
+            <div>
+            <input type="checkbox" id="interpolatorCheckbox" onchange="toggleCheckbox('interpolatorCheckbox')">
+            <label for="interpolatorCheckbox">Interpolator</label>
+            </div>
+        </div>
+        <button class="link hidden" id="pathPlanningButton"onclick="window.location.href='/pathplanning'" >Zu Interpolator Konfiguration</button>
+        <div class="link">
+            <div>
+            <input type="checkbox" id="rosCheckbox" onchange="toggleCheckbox('rosCheckbox')">
+            <label for="rosCheckbox">ROS</label>
+            </div>
+        </div>
+        <!-- Reboot Button -->
+        <button class="link" onclick="sendReboot()" >Neustart</button>
+
+    </div>
+
+    <script>
+        // Initialize Server-Sent Events (SSE)
+        let eventSource = new EventSource('/sse?type=index');
+
+        // Update status values when receiving events
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('radabstand').innerHTML = data.radabstand;
+            document.getElementById('axenabstand').innerHTML = data.axenabstand;
+            document.getElementById('radradius').innerHTML = data.radradius;
+            document.getElementById('encoderaufloesung').innerHTML = data.encoderaufloesung;
+            document.getElementById('uebersetzung').innerHTML = data.uebersetzung;
+            document.getElementById('kinematik').innerHTML = data.kinematik;
+            eventSource.close();
+        };
+
+        // Toggle buttons visibility based on checkbox state
+        function toggleCheckbox(checkedCheckbox) {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const rosCheckbox = document.getElementById('rosCheckbox');
+            const pathPlanningButton = document.getElementById('pathPlanningButton');
+
+            if (checkedCheckbox === 'interpolatorCheckbox') {
+                if (interpolatorCheckbox.checked) {
+                    rosCheckbox.checked = false;
+                    pathPlanningButton.classList.remove('hidden');
+                } else {
+                    interpolatorCheckbox.checked = true; // Ensure one is always checked
+                }
+            } else if (checkedCheckbox === 'rosCheckbox') {
+                if (rosCheckbox.checked) {
+                    interpolatorCheckbox.checked = false;
+                    pathPlanningButton.classList.add('hidden');
+                } else {
+                    rosCheckbox.checked = true; // Ensure one is always checked
+                }
+            }
+        }
+
+        // Send reboot request with the current selected checkbox state
+        function sendReboot() {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const selectedValue = interpolatorCheckbox.checked ? 0 : 1;
+
+            window.location.href = `/reboot?selected=${selectedValue}`;
+        }
+
+        // Ensure Interpolator checkbox is selected on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const rosCheckbox = document.getElementById('rosCheckbox');
+
+            interpolatorCheckbox.checked = true;
+            rosCheckbox.checked = false;
+            toggleCheckbox('interpolatorCheckbox');
+        });
+    </script>
+</body>
+</html>
