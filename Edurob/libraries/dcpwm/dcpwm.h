@@ -1,7 +1,7 @@
 #ifndef DCPWM_H
 #define DCPWM_H
 
-#include "arduino.h"
+#include "Arduino.h"
 
 class DCPWM
 {
