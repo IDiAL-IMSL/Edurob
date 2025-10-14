@@ -525,12 +525,13 @@ void speedControllerTask(void *pvParameters)
 
     // Set PID controller setpoints for each motor
     for (int i = 0; i < NumMotors; i++)
+    {
       speedControllerParam[i].setpoint = wheelSpeedSetpoint(i, 0);
+    }
 
     // Update encoder readings and filtered speed inputs
     for (int i = 0; i < NumMotors; i++)
     {
-      speedControllerParam[i].setpoint = wheelSpeedSetpoint(i, 0);  
       encoderNew[i] = EncoderDir[i] * WheelEncoder[i].getCount();
 
       // Get the increments since last run
