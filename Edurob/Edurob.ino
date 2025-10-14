@@ -119,7 +119,6 @@ Vector3d robotSpeedAcc;      // Robot speed acceleration limits
 Vector4d wheelSpeedSetpoint; // Desired wheel speeds [rad/s]
 Vector3d robotOdom;          // Odometry position (x, y, theta)
 Vector4d robotWheelSpeed;    // Current wheel velocities
-Vector3d robotOdomSpeed;     // Robot speed in odom frame
 double rosQuaternion[4];     // Quaternion for ROS transform messages
 
 
@@ -469,6 +468,9 @@ void speedControllerTask(void *pvParameters)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   const TickType_t xFrequency = pdMS_TO_TICKS(sampleTime);
+  Vector4d EncoderRadDiff;
+  Vector3d robotOdomChange;
+  Vector3d worldOdomChange;
 
   for (int i = 0; i < NumMotors; i++)
   {
@@ -538,6 +540,9 @@ void speedControllerTask(void *pvParameters)
       speedControllerParam[i].setpoint = wheelSpeedSetpoint(i, 0);  
       encoderNew[i] = EncoderDir[i] * WheelEncoder[i].getCount();
 
+      // Get the increments since last run
+      EncoderRadDiff[i] = (encoderNew[i] - encoderOld[i]) * incrementsToRad;
+
       inputsum[i] -= inputs[i][windowIndex];
       inputs[i][windowIndex] = ((((encoderNew[i] - encoderOld[i]) * incrementsToRad) / sampleTime) * 1000);
       inputsum[i] += inputs[i][windowIndex];
@@ -556,13 +561,12 @@ void speedControllerTask(void *pvParameters)
       robotWheelSpeed[i] = inputs[i][windowIndex];
     }
 
-    // Calculate robot speed in world coordinates from wheel speeds
-    robotOdomSpeed = (wheelRadius * kinematikInv * robotWheelSpeed);
-    robotOdomSpeed = robot_vel_to_world_vel(robotOdom[2], robotOdomSpeed); // Conversion Velocity in robotcoordinates to velocity in worldcoordinates
+    // Calculate the robot's state change
+    robotOdomChange = (wheelRadius * kinematikInv * EncoderRadDiff);
+    worldOdomChange = robot_vel_to_world_vel(robotOdom[2] + robotOdomChange[2]/2.0, robotOdomChange);
 
-    // Integrate odometry position using velocity estimates
-    for (int i = 0; i < 3; i++)
-            robotOdom[i] = robotOdomSpeed[i] * sampleTime / 1000 + robotOdom[i];
+    // Update odometry position
+    robotOdom += worldOdomChange;
 
     windowIndex = (windowIndex + 1) % windowSize;
   }
