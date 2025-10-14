@@ -489,17 +489,10 @@ void speedControllerTask(void *pvParameters)
   {
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-    // Smoothly adjust current robot speeds to setpoints respecting acceleration limits
+    // Adjust current robot speeds to setpoints respecting velocity limits
     for (int i = 0; i < 3; i++)
     {
-      if (robotSpeed[i] > robotSpeedSetpoint[i])
-      {
-        robotSpeed[i] = robotSpeed[i] - (robotSpeedAcc[i] * 0.005);
-      }
-      else if (robotSpeed[i] < robotSpeedSetpoint[i])
-      {
-        robotSpeed[i] = robotSpeed[i] + (robotSpeedAcc[i] * 0.005);
-      }
+      robotSpeed[i] = robotSpeedSetpoint[i];
 
       // Clamp to max speeds
       if (robotSpeed[i] > robotSpeedMax[i])
