@@ -4,13 +4,13 @@
 
 void mecanum_matrix(Eigen::MatrixXd& kinematik ,Eigen::MatrixXd& kinematikInv, const double l1, const double l2){
     
-  kinematik << 1, -1, -(l1 + l2),
-    1, 1, (l1 + l2),
-    1, -1, (l1 + l2),
-    1, 1, -(l1 + l2);
+  kinematik << 1, 1, (l1 + l2),
+    1, -1, -(l1 + l2),
+    1, 1, -(l1 + l2),
+    1, -1, (l1 + l2);
 
   kinematikInv << 1, 1, 1, 1,
-    -1, 1, -1, 1,
+    1, -1, 1, -1,
     1.0 / (l1 + l2), -1.0 / (l1 + l2), -1.0 / (l1 + l2), 1.0 / (l1 + l2);
 
   kinematik = 1 * kinematik;
