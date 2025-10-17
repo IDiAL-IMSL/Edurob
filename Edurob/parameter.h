@@ -52,13 +52,13 @@ static const float maxRSpeed = 1.5;            // Maximum rotational speed in ra
 static const float maxTAccel = 0.7;            // Maximum translational acceleration in m/s²
 static const float maxRAccel = 1.5;            // Maximum rotational acceleration in rad/s²
 static int EncoderDir[4] = {1, 1, 1, 1}; // Counting direction of encoderchannels (+1 or -1)
-static const int MotorDir[4] = {-1, 1, 1, -1};   // Direction of motors (+1 or -1)
+static const int MotorDir[4] = {1, -1, -1, 1};   // Direction of motors (+1 or -1)
 // #############-USER-CODE-END-#####################
 
 static const int NumMotors = 4;                                          // Number of Motors (Max=4)
 static const int sampleTime = 5;                                         // Sample time in ms
-static const int gearing = 150.0;                                        // Number of motorrotations per wheelrotation
-static const int encoderSteps = 12;                                      // Number of encoder increments per motorrotation
+static const int gearing = 100.0;                                        // Number of motorrotations per wheelrotation
+static const int encoderSteps = 28;                                      // Number of encoder increments per motorrotation
 static const double incrementsToRad = 2 * PI / (encoderSteps * gearing); // Conversion from encoder increments to rad
 static const double circumference = (2 * PI * wheelRadius);              // Circumference in meters
 static const double msToRads = (2 * PI) / circumference;                 // Conversion from m/s to rad/s
@@ -75,10 +75,10 @@ static double Rad2PWM = 100.0 * 60.0 * gearing / (2.0 * PI * nMax);      // Conv
 // Pin definitions
 
 //EdurobV2
-static const int PWM_A[4] = {47, 14, 17, 38};  // GPIO PWM channel A
-static const int PWM_B[4] = {39, 18, 21, 48}; // GPIO PWM channel B
-static const int Enc_A[4] = {2, 4, 7, 41}; // GPIO Encoder channel A
-static const int Enc_B[4] = {1, 5, 6, 42};  // GPIO Encoder channel B
+static const int PWM_A[4] = {14, 47, 38, 17};  // GPIO PWM channel A
+static const int PWM_B[4] = {18, 39, 48, 21}; // GPIO PWM channel B
+static const int Enc_A[4] = {4, 2, 41, 7}; // GPIO Encoder channel A
+static const int Enc_B[4] = {5, 1, 42, 6};  // GPIO Encoder channel B
 
 static const int EnablePIN = 40;              // Enable Signalpin for motordrivers
  
