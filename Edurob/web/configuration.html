@@ -13,22 +13,22 @@
             <div class="layout-col">
             <div class="box">
                 <table><tbody></tbody>
-                <tr><td><label for="radabstand">Radabstand:</label></td><td><input type="number" id="radabstand" name="radabstand" min="0" step="0.0001" placeholder="Radabstand in meters" required></td></tr>
+                <tr><td><label for="radabstand">Radabstand [m]:</label></td><td><input type="number" id="radabstand" name="radabstand" min="0" step="0.0001" placeholder="Radabstand in meters" required></td></tr>
                 
-                <tr><td><label for="axenabstand">Axenabstand:</label></td><td><input type="number" id="axenabstand" name="axenabstand" min="0" step="0.0001" placeholder="Axenabstand in meters" required></td></tr>
+                <tr><td><label for="axenabstand">Axenabstand [m]:</label></td><td><input type="number" id="axenabstand" name="axenabstand" min="0" step="0.0001" placeholder="Axenabstand in meters" required></td></tr>
                 
-                <tr><td><label for="radradius">Radradius:</label></td><td><input type="number" id="radradius" name="radradius" min="0" step="0.0001" placeholder="Radradius in meters" required></td></tr>
+                <tr><td><label for="radradius">Radradius [m]:</label></td><td><input type="number" id="radradius" name="radradius" min="0" step="0.0001" placeholder="Radradius in meters" required></td></tr>
                 
-                <tr><td><label for="encoderaufloesung">Encoderauflösung:</label></td><td><input type="number" id="encoderaufloesung" name="encoderaufloesung" min="1" max="65535" step="1" placeholder="Encoderauflösung (integer)" value="28" required></td></tr>
+                <tr><td><label for="encoderaufloesung">Encoderauflösung [Imp/U] (integer):</label></td><td><input type="number" id="encoderaufloesung" name="encoderaufloesung" min="1" max="65535" step="1" placeholder="Encoderauflösung (integer)" value="28" required></td></tr>
                 
-                <tr><td><label for="uebersetzung">Übersetzung:</label></td><td><input type="number" id="uebersetzung" name="uebersetzung" min="1" max="65535" step="1" placeholder="Übersetzung (integer)" value="100" required></td></tr>
+                <tr><td><label for="uebersetzung">Übersetzung [−] (integer):</label></td><td><input type="number" id="uebersetzung" name="uebersetzung" min="1" max="65535" step="1" placeholder="Übersetzung (integer)" value="100" required></td></tr>
                 
                 <tr><td><label for="kinematicOption">Kinematic Option:</label></td><td>
                 <select id="kinematicOption" name="kinematicOption" required>
-                    <option value="0">Mecanum</option>
-                    <option value="1">Omni4</option>
-                    <option value="2">Omni3</option>
-                    <option value="3">Diff</option>
+                    <option value="Mecanum">Mecanum</option>
+                    <option value="Omni4">Omni4</option>
+                    <option value="Omni3">Omni3</option>
+                    <option value="Diff">Diff</option>
                 </select></td></tr>
                 </tbody>
                 </table>
@@ -62,7 +62,7 @@
                     document.getElementById("radradius").value = data.radradius;
                     document.getElementById("encoderaufloesung").value = data.encoderaufloesung;
                     document.getElementById("uebersetzung").value = data.uebersetzung;
-                    document.getElementById("kinematicOption").value = data.kinematicOption;
+                    document.getElementById("kinematicOption").value = data.kinematik;
 
                 } catch (err) {
                     console.error("SSE data error:", err);

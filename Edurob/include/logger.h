@@ -3,15 +3,14 @@
 #include <cstdio>
 #include "esp_log.h"
 
-
-// esp_log would not work in server_esp only in Edurob.ini but this worked.
 class Logger {
 public:
   explicit Logger(const char* tag) : tag_(tag) {}
 
-
+  // optional: set runtime level for THIS tag
   void setLevel(esp_log_level_t lvl) { esp_log_level_set(tag_, lvl); }
 
+  // printf-style helpers (no macros involved)
   inline void e(const char* fmt, ...) {
     va_list ap; va_start(ap, fmt); vlog(ESP_LOG_ERROR,   fmt, ap); va_end(ap);
   }

@@ -138,16 +138,13 @@ static double parse_power(const std::string& s, size_t& i) {
   return v;
 }
 
-
-
-
-//public API
+// ---------- public API ----------
 double evalExpression(const std::string& expr) {
   size_t i = 0;
   double v = 0.0;
   try {
     v = parse_expr(expr, i);
-    
+    // ignore trailing whitespace and optional semicolons
     skip_ws(expr, i);
     while (i < expr.size() && expr[i] == ';') { ++i; skip_ws(expr, i); }
     if (i != expr.size()) throw std::runtime_error("unexpected trailing input");

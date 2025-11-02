@@ -37,6 +37,20 @@
         </div>
         <button class="link" onclick="window.location.href='/configuration'" >Zu EduRob Settings</button>
         <button class="link" onclick="window.location.href='/kinematiklinks'" >Zu Kinematik</button>
+
+        <div class="link">
+            <div>
+            <input type="checkbox" id="interpolatorCheckbox" onchange="toggleCheckbox('interpolatorCheckbox')">
+            <label for="interpolatorCheckbox">Interpolator</label>
+            </div>
+        </div>
+        <button class="link hidden" id="pathPlanningButton"onclick="window.location.href='/pathplanning'" >Zu Interpolator Konfiguration</button>
+        <div class="link">
+            <div>
+            <input type="checkbox" id="rosCheckbox" onchange="toggleCheckbox('rosCheckbox')">
+            <label for="rosCheckbox">ROS</label>
+            </div>
+        </div>
         <!-- Reboot Button -->
         <button class="link" onclick="sendReboot()" >Neustart</button>
 
@@ -57,12 +71,48 @@
             document.getElementById('kinematik').innerHTML = data.kinematik;
             eventSource.close();
         };
+
+        // Toggle buttons visibility based on checkbox state
+
+        function toggleCheckbox(checkedCheckbox) {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const rosCheckbox = document.getElementById('rosCheckbox');
+            const pathPlanningButton = document.getElementById('pathPlanningButton');
+
+            if (checkedCheckbox === 'interpolatorCheckbox') {
+                if (interpolatorCheckbox.checked) {
+                    rosCheckbox.checked = false;
+                    pathPlanningButton.classList.remove('hidden');
+                } else {
+                    interpolatorCheckbox.checked = true; // Ensure one is always checked
+                }
+            } else if (checkedCheckbox === 'rosCheckbox') {
+                if (rosCheckbox.checked) {
+                    interpolatorCheckbox.checked = false;
+                    pathPlanningButton.classList.add('hidden');
+                } else {
+                    rosCheckbox.checked = true; // Ensure one is always checked
+                }
+            }
+        }
+
         // Send reboot request with the current selected checkbox state
         function sendReboot() {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const selectedValue = interpolatorCheckbox.checked ? 0 : 1;
 
             window.location.href = `/reboot?selected=${selectedValue}`;
         }
 
+        // Ensure Interpolator checkbox is selected on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const interpolatorCheckbox = document.getElementById('interpolatorCheckbox');
+            const rosCheckbox = document.getElementById('rosCheckbox');
+
+            interpolatorCheckbox.checked = true;
+            rosCheckbox.checked = false;
+            toggleCheckbox('interpolatorCheckbox');
+        });
     </script>
 </body>
 </html>
