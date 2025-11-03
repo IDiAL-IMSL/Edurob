@@ -32,7 +32,7 @@ using namespace Eigen;   // Eigen related statement; simplifies syntax for decla
 // Project specific headers
 #include "parameter.h"
 
-// kinematik header
+// kinematikMatrixInUse header
 #include "kinematik.h"
 
 
@@ -86,8 +86,8 @@ int windowIndex = 0;                 // Currently accessed cell of inputs[motorn
 static double setpointSpeed[NumMotors]; // Motorspeed setpoints
 
 // Matrix
-MatrixXd kinematik(4, 3);    // Kinematics matrix for differential
-MatrixXd kinematikInv(3, 4); // Inverse Kinematics matrix for differential
+MatrixXd kinematikMatrixInUse(4, 3);    // Kinematics matrix for differential
+MatrixXd kinematikInvMatrixInUse(3, 4); // Inverse Kinematics matrix for differential
 Vector3d robotSpeedSetpoint; // Vector with translationional and rotational robot speeds in m/s and rad/s  (X(m/s), Y(m/s), Z(rad/s))
 Vector3d robotSpeed;         // Vector with translationional and rotational robot speeds in m/s and rad/s  (X(m/s), Y(m/s), Z(rad/s))
 Vector3d robotSpeedMax;      // Vector with translationional and rotational robot speeds in m/s and rad/s  (X(m/s), Y(m/s), Z(rad/s))
@@ -268,23 +268,23 @@ void initMatrix()
 
 #ifdef MECANUM
   // Mecanum
-  mecanum_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
+  mecanum_matrix(kinematikMatrixInUse, kinematikInvMatrixInUse, l1, l2); // sets the kinematikMatrixInUse and kinematikInvMatrixInUse to the desired values
 #endif
 
 #ifdef DIFF
   // Diff
-  differential_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
+  differential_matrix(kinematikMatrixInUse, kinematikInvMatrixInUse, l1, l2); // sets the kinematikMatrixInUse and kinematikInvMatrixInUse to the desired values
 
 #endif
 
 #ifdef OMNI4
   // Omni 4 Wheels
-  omni_4_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
+  omni_4_matrix(kinematikMatrixInUse, kinematikInvMatrixInUse, l1, l2); // sets the kinematikMatrixInUse and kinematikInvMatrixInUse to the desired values
 #endif
 
 #ifdef OMNI3
   // Omni 3 Wheels
-  omni_3_matrix(kinematik, kinematikInv, l1, l2); // sets the kinematik and kinematikInv to the desired values
+  omni_3_matrix(kinematikMatrixInUse, kinematikInvMatrixInUse, l1, l2); // sets the kinematikMatrixInUse and kinematikInvMatrixInUse to the desired values
 #endif
 
   robotSpeedSetpoint << 0.0,
@@ -293,7 +293,7 @@ void initMatrix()
 
   robotSpeedAcc << maxTAccel, maxTAccel, maxRAccel;
   robotSpeedMax << maxTSpeed, maxTSpeed, maxRSpeed;
-  wheelSpeedSetpoint = (1 / wheelRadius) * kinematik * robotSpeedSetpoint;
+  wheelSpeedSetpoint = (1 / wheelRadius) * kinematikMatrixInUse * robotSpeedSetpoint;
 }
 
 // Speed controller task
@@ -343,7 +343,7 @@ void speedControllerTask(void *pvParameters)
         robotSpeed[i] = 0;
       }
     }
-    wheelSpeedSetpoint = (1 / wheelRadius) * kinematik * robotSpeed;
+    wheelSpeedSetpoint = (1 / wheelRadius) * kinematikMatrixInUse * robotSpeed;
     for (int i = 0; i < NumMotors; i++)
     {
       if (abs(wheelSpeedSetpoint[i]) < 0.15)
@@ -373,7 +373,7 @@ void speedControllerTask(void *pvParameters)
       robotWheelSpeed[i] = inputs[i][windowIndex];
     }
 
-    robotOdomSpeed = (wheelRadius * kinematikInv * robotWheelSpeed);
+    robotOdomSpeed = (wheelRadius * kinematikInvMatrixInUse * robotWheelSpeed);
 
     robotOdomSpeed = robot_vel_to_world_vel(robotOdom[2], robotOdomSpeed); // Conversion Velocity in robotcoordinates to velocity in worldcoordinates
 
@@ -443,7 +443,7 @@ void setup()
   Serial.begin(115200);
   initHardware();
   initPID();
-  initMatrix();
+  //initMatrix();
   initWiFi();
 
   xTaskCreate(
@@ -479,13 +479,13 @@ void loop()
 
   // #############-USER-CODE-END-#####################
 
-#ifdef ROS_EN
-  setTfData();
-  setTfStaticData();
-  tf_pub.publish(&messageTf);
-  tf_static_pub.publish(&messageTfStatic);
-  nh.spinOnce();
-#endif // ROS_EN
+//#ifdef ROS_EN
+  //setTfData();
+  //setTfStaticData();
+  //tf_pub.publish(&messageTf);
+  //tf_static_pub.publish(&messageTfStatic);
+  //nh.spinOnce();
+//#endif // ROS_EN
 
   delay(10);
 }

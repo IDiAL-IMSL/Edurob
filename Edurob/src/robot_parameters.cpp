@@ -24,9 +24,9 @@ void clearPunkte() {
 double radabstand = 0.1234;
 double axenabstand = 0.5678;
 double radradius = 1.2345;
-double encoderaufloesung = 28;
-double uebersetzung = 100;
-int kinematik = 0;
+int encoderaufloesung = 28;
+int uebersetzung = 100;
+std::string kinematikOption = "Mecanum";
 
 double translationalSpeed = 0.15;
 double translationalAcceleration = 0.05;
@@ -39,9 +39,9 @@ int pointCount = 0;
 void setRadabstand(double value)        { radabstand = value; }
 void setAxenabstand(double value)       { axenabstand = value; }
 void setRadradius(double value)         { radradius = value; }
-void setEncoderaufloesung(double value) { encoderaufloesung = value; }
-void setUebersetzung(double value)      { uebersetzung = value; }
-void setKinematik(int value) { kinematik = value; }
+void setEncoderaufloesung(int value) { encoderaufloesung = value; }
+void setUebersetzung(int value)      { uebersetzung = value; }
+void setKinematikOption(const std::string& value) { kinematikOption = value; }
 
 
 void setTranslationalSpeed(double value)         { translationalSpeed = value; }
@@ -54,9 +54,9 @@ void setPointCount(int value) { pointCount = value; }
 double getRadabstand()        { return radabstand; }
 double getAxenabstand()       { return axenabstand; }
 double getRadradius()         { return radradius; }
-double getEncoderaufloesung() { return encoderaufloesung; }
-double getUebersetzung()      { return uebersetzung; }
-int getKinematik()    { return kinematik; }
+int getEncoderaufloesung() { return encoderaufloesung; }
+int getUebersetzung()      { return uebersetzung; }
+const std::string& getKinematikOption()    { return kinematikOption; }
 
 double getTranslationalSpeed()         { return translationalSpeed; }
 double getTranslationalAcceleration() { return translationalAcceleration; }

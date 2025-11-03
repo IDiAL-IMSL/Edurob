@@ -118,6 +118,11 @@ static inline int iget(const std::map<std::string,std::string>& kv, const char* 
   return (int)evalExpression(it->second);
 }
 
+static inline std::string sget(const std::map<std::string,std::string>& kv, const char* key, std::string def="0") {
+  auto it = kv.find(key);
+  if (it == kv.end()) return def;
+  return it->second;
+}
 // ---- JSON builders (mirror your sse_handler.cpp) ----------------------------
 
 
@@ -147,14 +152,13 @@ static std::string json_matrix_diff(double F[4][3], double I[3][4], double s1, d
 }
 
 static std::string json_configuration(){
-  int k = getKinematik();
-  const char* ks = (k==0?"Mecanum":k==1?"Omni4":k==2?"Omni3":k==3?"Diff":"Mecanum");
+  std::string ks = getKinematikOption();
   char tmp[384];
   snprintf(tmp, sizeof(tmp),
     "{\"radabstand\":%.6f,\"axenabstand\":%.6f,\"radradius\":%.6f,"
-    "\"encoderaufloesung\":%.0f,\"uebersetzung\":%.0f,\"kinematik\":\"%s\"}",
+    "\"encoderaufloesung\":%d,\"uebersetzung\":%d,\"kinematik\":\"%s\"}",
     getRadabstand(), getAxenabstand(), getRadradius(),
-    getEncoderaufloesung(), getUebersetzung(), ks);
+    getEncoderaufloesung(), getUebersetzung(), ks.c_str());
   return std::string(tmp);
 }
 // server_esp.cpp
@@ -280,9 +284,12 @@ static esp_err_t handle_configuration(httpd_req_t* req){
     if (kv.count("radabstand"))        setRadabstand(dget(kv, "radabstand"));
     if (kv.count("axenabstand"))       setAxenabstand(dget(kv, "axenabstand"));
     if (kv.count("radradius"))         setRadradius(dget(kv, "radradius"));
-    if (kv.count("encoderaufloesung")) setEncoderaufloesung(dget(kv, "encoderaufloesung"));
-    if (kv.count("uebersetzung"))      setUebersetzung(dget(kv, "uebersetzung"));
-    if (kv.count("kinematicOption"))   setKinematik(iget(kv, "kinematicOption"));
+    if (kv.count("encoderaufloesung")) setEncoderaufloesung(iget(kv, "encoderaufloesung"));
+    if (kv.count("uebersetzung"))      setUebersetzung(iget(kv, "uebersetzung"));
+    if (kv.count("kinematicOption")) {
+      const std::string val = sget(kv, "kinematicOption");     // URL-decoded string
+      setKinematikOption(val);                         // e.g. "Mecanum"
+    }
   }
   send_text(req, "text/html", configuration); return ESP_OK;
 }

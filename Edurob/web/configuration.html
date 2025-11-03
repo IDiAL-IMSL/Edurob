@@ -38,39 +38,50 @@
         </form>
         <button class="link" onclick="window.location.href='/'">Hauptmenü</button>
     </div>
- <script>
-        // Restore inputs from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        document.querySelectorAll('input[name]').forEach(input => {
-            const name = input.name;
-            if (urlParams.has(name)) {
-                input.value = urlParams.get(name);
-            }
-        });
-        window.onload = function () {
-            
-            // Initialize Server-Sent Events (SSE)
-            let eventSource = new EventSource('/sse?type=configuration');
+<script>
+  // Restore inputs AND selects from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  document.querySelectorAll('input[name], select[name]').forEach(el => {
+    if (urlParams.has(el.name)) el.value = urlParams.get(el.name);
+  });
 
-            // SSE feedback update
-            eventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    // Update input fields with latest values
-                    document.getElementById("radabstand").value = data.radabstand;
-                    document.getElementById("axenabstand").value = data.axenabstand;
-                    document.getElementById("radradius").value = data.radradius;
-                    document.getElementById("encoderaufloesung").value = data.encoderaufloesung;
-                    document.getElementById("uebersetzung").value = data.uebersetzung;
-                    document.getElementById("kinematicOption").value = data.kinematik;
+  window.addEventListener('load', () => {
+    const select = document.getElementById('kinematicOption');
+    const es = new EventSource('/sse?type=configuration');
 
-                } catch (err) {
-                    console.error("SSE data error:", err);
-                }
-                eventSource.close();
-            };
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
 
+        // Inputs
+        radabstand.value = data.radabstand;
+        axenabstand.value = data.axenabstand;
+        radradius.value = data.radradius;
+        encoderaufloesung.value = data.encoderaufloesung;
+        uebersetzung.value = data.uebersetzung;
+
+        // Safe select set
+        const desired = (data.kinematik ?? '').toString().trim();
+        if (desired) {
+          const match = Array.from(select.options).find(o => o.value === desired)
+                    || Array.from(select.options).find(o => o.value.toLowerCase() === desired.toLowerCase());
+          if (match) select.value = match.value;
         }
-    </script>
+
+        // Small delay to beat autofill race conditions
+        setTimeout(() => {
+          if (desired) {
+            const match = Array.from(select.options).find(o => o.value === desired);
+            if (match) select.value = match.value;
+          }
+        }, 0);
+      } catch (e) {
+        console.error('SSE data error:', e);
+      } finally {
+        es.close();
+      }
+    };
+  });
+</script>
 </body>
 </html>

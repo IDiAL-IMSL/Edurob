@@ -9,8 +9,7 @@ extern "C" void  stop_webserver(void* server);
 
 // ==== WLAN-Zugangsdaten ====
 const char* WIFI_SSID = "";
-const char* WIFI_PASS = "-";
-
+const char* WIFI_PASS = "";
 
 
 static void waitForWiFi() {

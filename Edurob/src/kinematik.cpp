@@ -11,7 +11,7 @@ static inline void checkNonZero(double v, const char* name) {
   }
 }
 
-void mecanum_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
+void mecanum_matrix(Eigen::MatrixXd& kinematikMatrixInUse, Eigen::MatrixXd& kinematikInvMatrixInUse,
                     const double l1, const double l2) {
   const auto Jv = getMecanumMatrix();                // 4x3, sign/template only
   const auto Kv = getInverseMecanumMatrix();         // 3x4, sign/template only
@@ -22,23 +22,23 @@ void mecanum_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
   checkNonZero(L, "l1 + l2");
 
   // J: copy and scale ω-column by (l1 + l2)
-  kinematik.resize(4, 3);
+  kinematikMatrixInUse.resize(4, 3);
   for (int r = 0; r < 4; ++r)
     for (int c = 0; c < 3; ++c)
-      kinematik(r, c) = Jv[r][c];
-  kinematik.col(2) *= L;     // ω column
-  kinematik *= sJ;
+      kinematikMatrixInUse(r, c) = Jv[r][c];
+  kinematikMatrixInUse.col(2) *= L;     // ω column
+  kinematikMatrixInUse *= sJ;
 
   // J^{-1}: copy and scale ω-row by 1/(l1 + l2)
-  kinematikInv.resize(3, 4);
+  kinematikInvMatrixInUse.resize(3, 4);
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 4; ++c)
-      kinematikInv(r, c) = Kv[r][c];
-  kinematikInv.row(2) /= (1.0 / L);   // ω row
-  kinematikInv *= sK;
+      kinematikInvMatrixInUse(r, c) = Kv[r][c];
+  kinematikInvMatrixInUse.row(2) /= (1.0 / L);   // ω row
+  kinematikInvMatrixInUse *= sK;
 }
 
-void differential_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
+void differential_matrix(Eigen::MatrixXd& kinematikMatrixInUse, Eigen::MatrixXd& kinematikInvMatrixInUse,
                          const double l1, const double l2) {
   const auto Jv = getDifferentialMatrix();           // 4x3, sign/template only
   const auto Kv = getInverseDifferentialMatrix();    // 3x4, sign/template only
@@ -48,23 +48,23 @@ void differential_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikI
   checkNonZero(l2, "l2");
 
   // J: copy and scale ω-column by l2
-  kinematik.resize(4, 3);
+  kinematikMatrixInUse.resize(4, 3);
   for (int r = 0; r < 4; ++r)
     for (int c = 0; c < 3; ++c)
-      kinematik(r, c) = Jv[r][c];
-  kinematik.col(2) *= l2;    // ω column
-  kinematik *= sJ;
+      kinematikMatrixInUse(r, c) = Jv[r][c];
+  kinematikMatrixInUse.col(2) *= l2;    // ω column
+  kinematikMatrixInUse *= sJ;
 
   // J^{-1}: copy and scale ω-row by 1/l2
-  kinematikInv.resize(3, 4);
+  kinematikInvMatrixInUse.resize(3, 4);
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 4; ++c)
-      kinematikInv(r, c) = Kv[r][c];
-  kinematikInv.row(2) *= (1.0 / l2);  // ω row
-  kinematikInv *= sK;
+      kinematikInvMatrixInUse(r, c) = Kv[r][c];
+  kinematikInvMatrixInUse.row(2) *= (1.0 / l2);  // ω row
+  kinematikInvMatrixInUse *= sK;
 }
 
-void omni_4_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
+void omni_4_matrix(Eigen::MatrixXd& kinematikMatrixInUse, Eigen::MatrixXd& kinematikInvMatrixInUse,
                    const double l1, const double l2) {
   const auto Jv = getOmniFourMatrix();               // 4x3, sign/template only
   const auto Kv = getInverseOmniFourMatrix();        // 3x4, sign/template only
@@ -75,23 +75,23 @@ void omni_4_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
   checkNonZero(L, "l1 + l2");
 
   // J: copy and scale ω-column by (l1 + l2)
-  kinematik.resize(4, 3);
+  kinematikMatrixInUse.resize(4, 3);
   for (int r = 0; r < 4; ++r)
     for (int c = 0; c < 3; ++c)
-      kinematik(r, c) = Jv[r][c];
-  kinematik.col(2) *= L;     // ω column
-  kinematik *= sJ;
+      kinematikMatrixInUse(r, c) = Jv[r][c];
+  kinematikMatrixInUse.col(2) *= L;     // ω column
+  kinematikMatrixInUse *= sJ;
 
   // J^{-1}: copy and scale ω-row by 1/(l1 + l2)
-  kinematikInv.resize(3, 4);
+  kinematikInvMatrixInUse.resize(3, 4);
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 4; ++c)
-      kinematikInv(r, c) = Kv[r][c];
-  kinematikInv.row(2) *= (1.0 / L);   // ω row
-  kinematikInv *= sK;
+      kinematikInvMatrixInUse(r, c) = Kv[r][c];
+  kinematikInvMatrixInUse.row(2) *= (1.0 / L);   // ω row
+  kinematikInvMatrixInUse *= sK;
 }
 
-void omni_3_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
+void omni_3_matrix(Eigen::MatrixXd& kinematikMatrixInUse, Eigen::MatrixXd& kinematikInvMatrixInUse,
                    const double l1, const double /*l2*/) {
   const auto Jv = getOmniThreeMatrix();              // 3x3, sign/template only
   const auto Kv = getInverseOmniThreeMatrix();       // 3x3, sign/template only
@@ -101,22 +101,22 @@ void omni_3_matrix(Eigen::MatrixXd& kinematik, Eigen::MatrixXd& kinematikInv,
   checkNonZero(l1, "l1");
 
   // J: copy and scale ω-column by (-l1) like the original
-  kinematik.resize(3, 3);
+  kinematikMatrixInUse.resize(3, 3);
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 3; ++c)
-      kinematik(r, c) = Jv[r][c];
+      kinematikMatrixInUse(r, c) = Jv[r][c];
   // The template Jv should carry the signs; if it matches your original
   // (-l1, -l1, -l1) pattern, multiplying by l1 is enough:
-  kinematik.col(2) *= l1;    // ω column
-  kinematik *= sJ;
+  kinematikMatrixInUse.col(2) *= l1;    // ω column
+  kinematikMatrixInUse *= sJ;
 
   // J^{-1}: copy and scale ω-row by 1/l1 (template carries the signs)
-  kinematikInv.resize(3, 3);
+  kinematikInvMatrixInUse.resize(3, 3);
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 3; ++c)
-      kinematikInv(r, c) = Kv[r][c];
-  kinematikInv.row(2) *= (1.0 / l1);  // ω row
-  kinematikInv *= sK;
+      kinematikInvMatrixInUse(r, c) = Kv[r][c];
+  kinematikInvMatrixInUse.row(2) *= (1.0 / l1);  // ω row
+  kinematikInvMatrixInUse *= sK;
 }
 
 
