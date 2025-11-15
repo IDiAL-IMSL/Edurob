@@ -219,6 +219,7 @@ void error_loop_soft()
   Serial.println("SOFT ROS ERR");
 }
 
+#ifdef ROS_EN
 /**
  * @brief Converts Roll-Pitch-Yaw Euler angles to a ROS quaternion message.
  * 
@@ -245,6 +246,7 @@ static geometry_msgs__msg__Quaternion createQauternionFromRPY(double roll, doubl
   q.w = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw; // formerly yzx
   return q;
 }
+#endif // ROS_EN
 
 /**
  * @brief Converts Euler angles (degrees) to a quaternion array.
@@ -605,6 +607,7 @@ void setup()
       NULL,                  /* Parameter passed as input of the task */
       5,                     /* Priority of the task. */
       NULL, 1);              /* Task handle. */
+#ifdef ROS_EN
   xTaskCreatePinnedToCore(
       ros_task,   /* Task function. */
       "ros_task", /* String with name of task. */
@@ -612,6 +615,7 @@ void setup()
       NULL,       /* Parameter passed as input of the task */
       4,          /* Priority of the task. */
       NULL, 1);   /* Task handle. */
+#endif // ROS_EN
   xTaskCreatePinnedToCore(
       loggerTask,   /* Task function. */
       "loggerTask", /* String with name of task. */
