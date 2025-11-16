@@ -89,6 +89,33 @@ rcl_timer_t timer;
 unsigned int timer_timeout1;
 geometry_msgs__msg__Quaternion q;
 
+HardwareSerial ROSSerial(0);
+
+bool serial_transport_open(struct uxrCustomTransport * transport)
+{
+  ROSSerial.begin(115200, SERIAL_8N1, 44, 43);
+  return true;
+}
+
+bool serial_transport_close(struct uxrCustomTransport * transport)
+{
+  ROSSerial.end();
+  return true;
+}
+
+size_t serial_transport_write(struct uxrCustomTransport * transport, const uint8_t *buf, size_t len, uint8_t *errcode)
+{
+  (void)errcode;
+  size_t sent = ROSSerial.write(buf, len);
+  return sent;
+}
+
+size_t serial_transport_read(struct uxrCustomTransport * transport, uint8_t *buf, size_t len, int timeout, uint8_t *errcode)
+{
+  (void)errcode;
+  ROSSerial.setTimeout(timeout);
+  return ROSSerial.readBytes((char *)buf, len);
+}
 #endif // ROS_EN
 
 // kinematik header
@@ -625,7 +652,8 @@ void setup()
       NULL, 1);     /* Task handle. */
 
 #ifdef ROS_EN
-  set_microros_wifi_transports(WIFISSID, WIFIPASS, AGENT_IP, AGENT_PORT);
+  //set_microros_wifi_transports(WIFISSID, WIFIPASS, AGENT_IP, AGENT_PORT);
+  rmw_uros_set_custom_transport(true, NULL, serial_transport_open, serial_transport_close, serial_transport_write, serial_transport_read);
 
   delay(2000);
 
