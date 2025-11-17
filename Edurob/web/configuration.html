@@ -6,6 +6,14 @@
     <title>Configuration</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
+<script>
+const saveBtn = document.getElementById('saveBtn');
+
+document.querySelector("form").addEventListener("submit", (e) => {
+    saveBtn.classList.add("button-saving");
+    saveBtn.innerText = "Saving...";
+});
+</script>
 <body>
     <div class="layout-col">
         <h1>Configuration</h1>
@@ -28,12 +36,12 @@
                     <option value="Mecanum">Mecanum</option>
                     <option value="Omni4">Omni4</option>
                     <option value="Omni3">Omni3</option>
-                    <option value="Diff">Diff</option>
+                    <option value="Differential">Differential</option>
                 </select></td></tr>
                 </tbody>
                 </table>
             </div>
-            <button class="link" type="submit">Save</button>
+            <button id="saveBtn" class="link" type="submit">Save</button>
             </div>
         </form>
         <button class="link" onclick="window.location.href='/'">Hauptmenü</button>

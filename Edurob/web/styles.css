@@ -171,3 +171,14 @@ a:hover {
 
 
 
+.button-saving {
+    background-color: #777 !important;
+    color: white !important;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.button-saved {
+    background-color: #4caf50 !important;
+    color: white !important;
+}

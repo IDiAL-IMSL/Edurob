@@ -49,6 +49,30 @@
             </div>
         </form>
         <button class="link" onclick="window.location.href='/'" >Hauptmenü</button>
+        <div class="info-box">
+            <p>
+                Die Eingabefelder akzeptieren sowohl reine Zahlen und &pi; als auch einfache mathematische Ausdrücke.<br>Diese werden automatisch ausgewertet, bevor sie gespeichert werden.
+            </p>
+            <p><strong>Unterstützte Operationen:</strong></p>
+            <ul>
+                <li><code>+</code> Addition (z.&nbsp;B. <code>3 + 4</code> → <code>7</code>)</li>
+                <li><code>-</code> Subtraktion (z.&nbsp;B. <code>7 - 2</code> → <code>5</code>)</li>
+                <li><code>*</code> Multiplikation (z.&nbsp;B. <code>2 * 3</code> → <code>6</code>)</li>
+                <li><code>/</code> Division (z.&nbsp;B. <code>10 / 5</code> → <code>2</code>)</li>
+                <li><code>PI</code> &pi; (z.&nbsp;B. <code>PI</code> → <code>3.14...</code>)</li>
+                <li><code>sqrt(x)</code> Quadratwurzel (z.&nbsp;B. <code>sqrt(2*2)</code> → <code>2</code>)</li>
+                <li><code>sin(x)</code> Sinusfunktion (z.&nbsp;B. <code>sin(PI)</code> → <code>0</code>)</li>
+                <li><code>cos(x)</code> Kosinusfunktion (z.&nbsp;B. <code>cos(PI/2)</code> → <code>0</code>)</li>
+                <li><code>tan(x)</code> Tangensfunktion (z.&nbsp;B. <code>tan(PI)</code> → <code>0</code>) (z.&nbsp;B. <code>tan(PI/2)</code> → <code>INF</code> -> <code>1000</code>)</li></li>
+                <li><code>pow(x, y)</code> Potenzfunktion (z.&nbsp;B. <code>pow(2, 3)</code> → <code>8</code>)</li>
+            </ul>
+            <p>
+                <strong>Hinweise:</strong><br>
+                • Verwenden Sie einen Punkt (<code>.</code>) als Dezimaltrennzeichen (z.&nbsp;B. <code>3.14</code>).<br>
+                • Leerzeichen sind optional, aber erlaubt (z.&nbsp;B. <code>4 / 2</code>).<br>
+                • Ungültige Ausdrücke werden stillschweigend ignoriert.
+            </p>
+        </div>
     </div>
     </div>
 

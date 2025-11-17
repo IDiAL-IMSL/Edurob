@@ -36,7 +36,7 @@
             </div>
         </div>
         <button class="link" onclick="window.location.href='/configuration'" >Zu EduRob Settings</button>
-        <button class="link" onclick="window.location.href='/kinematiklinks'" >Zu Kinematik</button>
+        <button id="kinematikButton" class="link">Zu Kinematik</button>
         <!-- Reboot Button -->
         <button class="link" onclick="sendReboot()" >Neustart</button>
 
@@ -46,7 +46,7 @@
         // Initialize Server-Sent Events (SSE)
         let eventSource = new EventSource('/sse?type=index');
 
-        // Update status values when receiving events
+        // Update status values  and Link when receiving events
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
             document.getElementById('radabstand').innerHTML = data.radabstand;
@@ -55,8 +55,34 @@
             document.getElementById('encoderaufloesung').innerHTML = data.encoderaufloesung;
             document.getElementById('uebersetzung').innerHTML = data.uebersetzung;
             document.getElementById('kinematik').innerHTML = data.kinematik;
+            updateKinematikButton(data.kinematik);
             eventSource.close();
         };
+
+        function updateKinematikButton(kinematik) {
+            const button = document.getElementById("kinematikButton");
+
+            // Entscheide hier je nach Kinematik-Typ
+            switch (kinematik.toLowerCase()) {
+                case "mecanum":
+                    button.onclick = () => window.location.href = "/mecanum";
+                    break;
+
+                case "omni4":
+                    button.onclick = () => window.location.href = "/omnifour";
+                    break;
+
+                case "omni3":
+                    button.onclick = () => window.location.href = "/omnithree";
+                    break;
+                case "differential":
+                    button.onclick = () => window.location.href = "/differential";
+                    break;
+                default:
+                    // Fallback
+                    button.onclick = () => window.location.href = "/kinematiklinks";
+            }
+        }
         // Send reboot request with the current selected checkbox state
         function sendReboot() {
 
