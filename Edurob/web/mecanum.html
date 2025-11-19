@@ -6,25 +6,9 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <div class="layout-row">
-    <div class="box">
-    <p><strong>Unterstützte Operationen:</strong></p>
-    <ul>
-        <li><code>+</code></li>
-        <li><code>-</code></li>
-        <li><code>*</code></li>
-        <li><code>/</code></li>
-        <li><code>PI</code></li>
-        <li><code>sqrt(x)</code></li>
-        <li><code>sin(x)</code></li>
-        <li><code>cos(x)</code></li>
-        <li><code>tan(x)</code></li>
-        <li><code>pow(x, y)</code> </li>
-    </ul>
-    </div>
     <div class="layout-col">
         <h1>Kinematik Konfiguration</h1>
-        <form action="/mecanum" method="get">
+        <form id="form" action="/mecanum" method="get">
             <div class="layout-col">
             <div class="box">
                 <h2>Mecanum - Matrix</h2>
@@ -45,7 +29,7 @@
                 <label>Scalar:</label>
                 <input type="string" name="2" required >
             </div>
-            <button class="link" type="submit">Matrix speichern</button>
+            <button id="saveMatrixBtn" class="link" type="submit">Matrix speichern</button>
             </div>
         </form>
         <button class="link" onclick="window.location.href='/'" >Hauptmenü</button>
@@ -74,70 +58,94 @@
             </p>
         </div>
     </div>
-    </div>
 
-
-
-
-
-
-
-
-    <script>
-        // Restore inputs from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        document.querySelectorAll('input[name]').forEach(input => {
-            const name = input.name;
-            if (urlParams.has(name)) {
-                input.value = urlParams.get(name);
-            }
-        });
-        window.onload = function () {
-            
-            // Initialize Server-Sent Events (SSE)
-            let eventSource = new EventSource('/sse?type=mecanum');
-
-            // SSE feedback update
-            eventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-
-                    const matrix1 = data.matrix || [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
-                    const matrix2 = data.inverse || [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
-                    const scalar1 = data.scalar1 || 0;
-                    const scalar2 = data.scalar2 || 0;
-
-                    // Fill matrix inputs
-                    matrix1.forEach((row, i) => {
-                        row.forEach((val, j) => {
-                            const input = document.querySelector(`input[name="${1}${i+1}${j+1}"]`);
-                            if (input) input.value = parseFloat(val).toFixed(2);
-                        });
-                    });
-
-                    // Fill scalar1 input
-                    const scalarInput1 = document.querySelector(`input[name="1"]`);
-                    if (scalarInput1) scalarInput1.value = scalar1.toFixed(2);
-
-                    // Fill Inverse matrix inputs
-                    matrix2.forEach((row, i) => {
-                        row.forEach((val, j) => {
-                            const input = document.querySelector(`input[name="${2}${i+1}${j+1}"]`);
-                            if (input) input.value = parseFloat(val).toFixed(2);
-                        });
-                    });
-
-                    // Fill scalar2 input
-                    const scalarInput2 = document.querySelector(`input[name="2"]`);
-                    if (scalarInput2) scalarInput2.value = scalar2.toFixed(2);
-                } catch (err) {
-                    console.error("SSE data error:", err);
-                }
-                eventSource.close();
-            };
-
+ <script>
+    // Restore inputs from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    document.querySelectorAll('input[name]').forEach(input => {
+        const name = input.name;
+        if (urlParams.has(name)) {
+            input.value = urlParams.get(name);
         }
-    </script>
+    });
+
+    function isSaved() {
+        const paramsForm = new URLSearchParams(new FormData(document.querySelector("#form")));
+        const paramsUrl  = new URLSearchParams(window.location.search);
+
+        for (const key of paramsForm.keys()) {
+            const a = paramsForm.get(key);
+            const b = paramsUrl.get(key);
+
+            if (b === null) return false;
+
+            let na = parseFloat(a);
+            let nb = parseFloat(b);
+
+            if (!isNaN(na) && !isNaN(nb)) {
+                if (Math.abs(na - nb) > 0.000001) return false;
+            } else {
+                if (a !== b) return false;
+            }
+        }
+        return true;
+    }
+
+    function updateSaveState() {
+        const btn = document.getElementById("saveMatrixBtn");
+        if (isSaved()) btn.classList.remove("unsaved");
+        else btn.classList.add("unsaved");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("#form input").forEach(i => {
+            i.addEventListener("input", updateSaveState);
+        });
+
+        updateSaveState();
+    });
+
+    // --- Your SSE code, but call updateSaveState at the end ---
+    let eventSource = new EventSource('/sse?type=mecanum');
+
+    eventSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+
+            const matrix1 = data.matrix || [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+            const matrix2 = data.inverse || [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+            const scalar1 = data.scalar1 || 0;
+            const scalar2 = data.scalar2 || 0;
+
+            matrix1.forEach((row, i) => {
+                row.forEach((val, j) => {
+                    const input = document.querySelector(`input[name="${1}${i+1}${j+1}"]`);
+                    if (input) input.value = parseFloat(val).toFixed(2);
+                });
+            });
+
+            const scalarInput1 = document.querySelector(`input[name="1"]`);
+            if (scalarInput1) scalarInput1.value = scalar1.toFixed(2);
+
+            matrix2.forEach((row, i) => {
+                row.forEach((val, j) => {
+                    const input = document.querySelector(`input[name="${2}${i+1}${j+1}"]`);
+                    if (input) input.value = parseFloat(val).toFixed(2);
+                });
+            });
+
+            const scalarInput2 = document.querySelector(`input[name="2"]`);
+            if (scalarInput2) scalarInput2.value = scalar2.toFixed(2);
+
+            // ✅ After SSE filled everything, re-check saved state
+            updateSaveState();
+
+        } catch (err) {
+            console.error("SSE data error:", err);
+        }
+        eventSource.close();
+    };
+</script>
 
 </body>
 </html>

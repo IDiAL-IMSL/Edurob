@@ -132,6 +132,10 @@ a:hover {
     margin: 2px;
 }
 
+#saveMatrixBtn.unsaved {
+    background-color: #888;   /* gray when unsaved */
+    color: #ddd;
+}
 
 .hidden {
     display: none;
