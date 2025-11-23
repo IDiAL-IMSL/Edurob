@@ -132,11 +132,14 @@ a:hover {
     margin: 2px;
 }
 
-#saveMatrixBtn.unsaved {
-    background-color: #888;   /* gray when unsaved */
+#saveMatrixBtn.loaded {
+    background-color: #888;   /* gray when laod */
     color: #ddd;
 }
-
+#saveMatrixBtn.unsaved {
+    background-color: #ff0000;   /* gray when unsaved */
+    color: #ddd;
+}
 .hidden {
     display: none;
 }

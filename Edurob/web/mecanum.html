@@ -73,6 +73,9 @@
         const paramsForm = new URLSearchParams(new FormData(document.querySelector("#form")));
         const paramsUrl  = new URLSearchParams(window.location.search);
 
+        // Wenn URL leer ist → nicht saved
+        if (paramsUrl.size === 0) return false;
+
         for (const key of paramsForm.keys()) {
             const a = paramsForm.get(key);
             const b = paramsUrl.get(key);
@@ -91,15 +94,33 @@
         return true;
     }
 
-    function updateSaveState() {
-        const btn = document.getElementById("saveMatrixBtn");
-        if (isSaved()) btn.classList.remove("unsaved");
-        else btn.classList.add("unsaved");
+    function isLoadedState() {
+        const paramsUrl = new URLSearchParams(window.location.search);
+        return paramsUrl.size === 0;
     }
 
+    function updateSaveState() {
+        console.log("Update");
+        const btn = document.getElementById("saveMatrixBtn");
+
+        // Klassen zurücksetzen
+        btn.classList.remove("unsaved", "saved", "loaded");
+
+        if (isLoadedState()) {
+            btn.classList.add("loaded");
+        } else if (isSaved()) {
+            btn.classList.add("saved");
+        } else {
+            btn.classList.add("unsaved");
+        }
+    }
     document.addEventListener("DOMContentLoaded", () => {
-        document.querySelectorAll("#form input").forEach(i => {
-            i.addEventListener("input", updateSaveState);
+        const form = document.querySelector("#form");
+        console.log("Form:", form);
+        form.addEventListener("input", (event) => {
+            if (event.target.matches("input")) {
+                updateSaveState();
+            }
         });
 
         updateSaveState();
