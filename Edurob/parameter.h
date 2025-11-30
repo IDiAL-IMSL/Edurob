@@ -12,12 +12,15 @@
 
 
 #ifdef ROS_EN
-#define ROS_DOMAIN_ID 1
-#define WIFISSID "ESPNET"
-#define WIFIPASS "espnetwifikey"
-#define AGENT_IP "10.0.101.253"
-#define AGENT_PORT 8888
+#define ROS_DOMAIN_ID 2
+#define WIFISSID "AMShotspot"
+#define WIFIPASS "AMShotspotwifikey"
+#define AGENT_IP "192.168.0.160"
+#define AGENT_PORT 8888 
 
+// I2C Address of IMU for gyroscope
+#define IMU_I2C_ADDR 0x6B
+  
 #endif
 
 

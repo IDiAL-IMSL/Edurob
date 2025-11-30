@@ -21,7 +21,6 @@
 // Project specific parameters
 #include "parameter.h"
 
-
 #include <WiFi.h>
 #include "sdkconfig.h"
 #include "esp_system.h"
@@ -29,7 +28,7 @@
 #include "freertos/task.h"
 #include "freertos/timers.h"
 #include "freertos/event_groups.h"
-#include "math.h"
+#include "math.h" 
 
 // Hardware and control libraries for PWM, Encoder, PID control, and matrix math
 #include <dcpwm.h>       // PWM
@@ -55,6 +54,8 @@ using namespace Eigen;   // Simplify matrix/vector declarations
 #include <tf2_msgs/msg/tf_message.h>
 #include <nav_msgs/msg/odometry.h>
 #include <geometry_msgs/msg/transform_stamped.h>
+#include <sensor_msgs/msg/imu.h>
+#include "gyroscope.h"
 
 // Error checking macros for ROS functions
 #define RCCHECK(fn)              \
@@ -65,6 +66,7 @@ using namespace Eigen;   // Simplify matrix/vector declarations
       error_loop();              \
     }                            \
   }
+
 #define RCSOFTCHECK(fn)          \
   {                              \
     rcl_ret_t temp_rc = fn;      \
@@ -77,6 +79,7 @@ using namespace Eigen;   // Simplify matrix/vector declarations
 // ROS communication variables
 rcl_subscription_t subscriber;
 rcl_publisher_t tf_pub;
+rcl_publisher_t gyro_pub;
 geometry_msgs__msg__Twist msg;
 geometry_msgs__msg__TransformStamped tfMessages[2]; // Transform between base_link / odom and base_link / laser
 tf2_msgs__msg__TFMessage tf2Message;
@@ -85,9 +88,11 @@ rcl_allocator_t allocator;
 rcl_init_options_t init_options;
 rclc_support_t support;
 rcl_node_t node;
+
 rcl_timer_t timer;
 unsigned int timer_timeout1;
 geometry_msgs__msg__Quaternion q;
+sensor_msgs__msg__Imu gyro_imu_msg;
 
 HardwareSerial ROSSerial(0);
 
@@ -145,9 +150,9 @@ Vector3d robotSpeedMax;      // Max allowed robot speed
 Vector3d robotSpeedAcc;      // Robot speed acceleration limits
 Vector4d wheelSpeedSetpoint; // Desired wheel speeds [rad/s]
 Vector3d robotOdom;          // Odometry position (x, y, theta)
+Vector3d robotGyroOdom;          // Odometry position (x, y, theta)
 Vector4d robotWheelSpeed;    // Current wheel velocities
 double rosQuaternion[4];     // Quaternion for ROS transform messages
-
 
 
 /**************************** Function Definitions ****************************/
@@ -183,8 +188,9 @@ void ros_task(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(10));
     
     // Convert yaw (theta) from robot odometry into a quaternion
-    double quat[4];
+    double quat[4], quatGyro[4];
     euler_to_quat(0, 0, robotOdom[2], quat);
+    //euler_to_quat(0, 0, robotGyroOdom[2], quatGyro);
 
     // Setup odom->base_link transform
     tfMessages[0].child_frame_id.data = "base_link";
@@ -212,6 +218,21 @@ void ros_task(void *pvParameters)
     tfMessages[1].header.stamp.sec = rmw_uros_epoch_millis() / 1000;
     tfMessages[1].header.stamp.nanosec = rmw_uros_epoch_nanos();
 
+    // Setup odom->base_link transform
+    /*
+    tfMessages[2].child_frame_id.data = "base_link";
+    tfMessages[2].transform.translation.x = robotGyroOdom[0];
+    tfMessages[2].transform.translation.y = robotGyroOdom[1];
+    tfMessages[2].transform.translation.z = 0;
+    tfMessages[2].transform.rotation.x = quatGyro[1];
+    tfMessages[2].transform.rotation.y = quatGyro[2];
+    tfMessages[2].transform.rotation.z = quatGyro[3];
+    tfMessages[2].transform.rotation.w = quatGyro[0];
+    tfMessages[2].header.frame_id.data = "gyroOdom";
+    tfMessages[2].header.stamp.sec = rmw_uros_epoch_millis() / 1000;
+    tfMessages[2].header.stamp.nanosec = rmw_uros_epoch_nanos();
+    */
+
     // Configure TF message container
     tf2Message.transforms.capacity = 2;
     tf2Message.transforms.data = tfMessages;
@@ -221,6 +242,61 @@ void ros_task(void *pvParameters)
     RCSOFTCHECK(rcl_publish(&tf_pub, &tf2Message, NULL));
   }
 }
+
+/**
+ *
+ *
+ *
+*/
+  void read_imu_data  (sensor_msgs__msg__Imu &gyro_imu_msg){
+    float g_x = 0.0, g_y = 0.0, g_z= 0.0;
+    float a_x = 0.0, a_y= 0.0, a_z= 0.0;
+    float angle_x = 0.0, angle_y = 0.0, angle_z = 0.0;
+    double quat[4] = {0.0, 0.0, 0.0, 0.0};
+
+    fetch_gyro_data(g_x, g_y, g_z);
+    fetch_acceleration_data(a_x, a_y, a_z);
+
+    quartenion_algorithm(angle_x, angle_y, angle_z);
+    euler_to_quat(angle_x, angle_y, angle_z, quat);
+
+    gyro_imu_msg.orientation.x = quat[1];
+    gyro_imu_msg.orientation.y = quat[2];
+    gyro_imu_msg.orientation.z = quat[3];
+    gyro_imu_msg.orientation.w = quat[0];
+
+    gyro_imu_msg.angular_velocity.x = g_x*CONVERS_CONST_DEGREES_PER_SECOND_2_RADIANS_PER_SECOND;
+    gyro_imu_msg.angular_velocity.y = g_y*CONVERS_CONST_DEGREES_PER_SECOND_2_RADIANS_PER_SECOND;
+    gyro_imu_msg.angular_velocity.z = g_z*CONVERS_CONST_DEGREES_PER_SECOND_2_RADIANS_PER_SECOND;
+    
+    gyro_imu_msg.linear_acceleration.x = a_x*CONVERS_CONST_G_2_A;
+    gyro_imu_msg.linear_acceleration.y = a_y*CONVERS_CONST_G_2_A;
+    gyro_imu_msg.linear_acceleration.z = a_z*CONVERS_CONST_G_2_A;
+
+    gyro_imu_msg.header.frame_id.data = "imu_link";
+    gyro_imu_msg.header.stamp.sec = rmw_uros_epoch_millis() / 1000;
+    gyro_imu_msg.header.stamp.nanosec = rmw_uros_epoch_nanos();
+  }
+
+/**
+ * @brief ROS task that publishes IMU Sensor Messages to ROS in a loop.
+ *
+ * This task publishes angular velocity and linear acceleration periodically. 
+ *
+ * @param pvParameters FreeRTOS task parameters (unused)
+*/
+void ros_publish_gyro_task(void *pvParameters){
+  sensor_msgs__msg__Imu__init(&gyro_imu_msg);
+
+  while(1){
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    read_imu_data(gyro_imu_msg);
+
+    RCSOFTCHECK(rcl_publish(&gyro_pub, &gyro_imu_msg, NULL));
+  }
+}
+
 
 #endif // ROS_EN
 
@@ -500,6 +576,9 @@ void speedControllerTask(void *pvParameters)
   Vector4d EncoderRadDiff;
   Vector3d robotOdomChange;
   Vector3d worldOdomChange;
+  Vector3d worldGyroOdomChange;
+
+  float old_rotation_degree_z = 0.0f;
 
   for (int i = 0; i < NumMotors; i++)
   {
@@ -587,9 +666,12 @@ void speedControllerTask(void *pvParameters)
     // Calculate the robot's state change
     robotOdomChange = (wheelRadius * kinematikInv * EncoderRadDiff);
     worldOdomChange = robot_vel_to_world_vel(robotOdom[2] + robotOdomChange[2]/2.0, robotOdomChange);
-
+    worldGyroOdomChange = robot_vel_to_world_vel(robotGyroOdom[2] + 1.0/2.0, worldGyroOdomChange);
+    old_rotation_degree_z = 0;
+   
     // Update odometry position
     robotOdom += worldOdomChange;
+    robotGyroOdom += worldGyroOdomChange;    
 
     windowIndex = (windowIndex + 1) % windowSize;
   }
@@ -626,32 +708,11 @@ void setup()
   initHardware();
   initPID();
   initMatrix();
+  init_IMU();
 
-  xTaskCreatePinnedToCore(
-      speedControllerTask,   /* Task function. */
-      "speedControllerTask", /* String with name of task. */
-      10000,                 /* Stack size in bytes. */
-      NULL,                  /* Parameter passed as input of the task */
-      5,                     /* Priority of the task. */
-      NULL, 1);              /* Task handle. */
-#ifdef ROS_EN
-  xTaskCreatePinnedToCore(
-      ros_task,   /* Task function. */
-      "ros_task", /* String with name of task. */
-      10000,      /* Stack size in bytes. */
-      NULL,       /* Parameter passed as input of the task */
-      4,          /* Priority of the task. */
-      NULL, 1);   /* Task handle. */
-#endif // ROS_EN
-  xTaskCreatePinnedToCore(
-      loggerTask,   /* Task function. */
-      "loggerTask", /* String with name of task. */
-      20000,        /* Stack size in bytes. */
-      NULL,         /* Parameter passed as input of the task */
-      1,            /* Priority of the task. */
-      NULL, 1);     /* Task handle. */
+  delay(2000);
 
-#ifdef ROS_EN
+#ifdef ROS_EN 
   //set_microros_wifi_transports(WIFISSID, WIFIPASS, AGENT_IP, AGENT_PORT);
   rmw_uros_set_custom_transport(true, NULL, serial_transport_open, serial_transport_close, serial_transport_write, serial_transport_read);
 
@@ -662,7 +723,7 @@ void setup()
   // create init_options
   init_options = rcl_get_zero_initialized_init_options();
   RCCHECK(rcl_init_options_init(&init_options, allocator));
-
+  
   RCCHECK(rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID));
   RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
@@ -678,22 +739,52 @@ void setup()
 
   // create publisher
   RCCHECK(rclc_publisher_init_default(&tf_pub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage), "tf"));
+  RCCHECK(rclc_publisher_init_default(&gyro_pub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu), "gyro"));
 
   // create executor
   RCCHECK(rclc_executor_init(&executor, &support.context, 7, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
 #endif // ROS_EN
+
+  xTaskCreatePinnedToCore(
+      speedControllerTask,   /* Task function. */
+      "speedControllerTask", /* String with name of task. */
+      10000,                 /* Stack size in bytes. */
+      NULL,                  /* Parameter passed as input of the task */
+      5,                     /* Priority of the task. */
+      NULL, 1);              /* Task handle. */ 
+#ifdef ROS_EN
+  xTaskCreatePinnedToCore(
+      ros_task,   /* Task function. */
+      "ros_task", /* String with name of task. */
+      10000,      /* Stack size in bytes. */
+      NULL,       /* Parameter passed as input of the task */
+      4,          /* Priority of the task. */
+      NULL, 1);   /* Task handle. */
+  xTaskCreatePinnedToCore(
+      ros_publish_gyro_task,   /* Task function. */
+      "ros_publish_gyro_task", /* String with name of task. */
+      10000,      /* Stack size in bytes. */
+      NULL,       /* Parameter passed as input of the task */
+      3,          /* Priority of the task. */
+      NULL, 1);   /* Task handle. */  
+#endif // ROS_EN
+  xTaskCreatePinnedToCore(
+      loggerTask,   /* Task function. */
+      "loggerTask", /* String with name of task. */
+      20000,        /* Stack size in bytes. */
+      NULL,         /* Parameter passed as input of the task */
+      1,            /* Priority of the task. */
+      NULL, 1);     /* Task handle. */
 }
 
 /**
  * @brief Arduino main loop, runs repeatedly.
  * 
- * Enables motors and processes ROS incoming commands if enabled.
+ * Enables motors and processes ROS incoming commands if enabled.exit
  */
 void loop()
 {
-  digitalWrite(EnablePIN, HIGH); // Always ensure motors are enabled
-
   // #############-USER-CODE-START-#####################
   // double tx = 0.0, ty = 0.0, theta = 0.0;
   // robotSpeedSetpoint << tx, ty, theta;
