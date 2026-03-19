@@ -14,7 +14,7 @@ EduRob is a handy mobile robot specially designed for education. Through clever 
 
 [PCB](https://github.com/IDiAL-IMSL/Edurob-PCB)
 
-[CAD](CAD/README.md) 
+[CAD](https://github.com/IDiAL-IMSL/Edurob-CAD/README.md)
 
 ## Example projects:
 
